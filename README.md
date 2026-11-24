@@ -42,6 +42,9 @@ Supabase'i seadistuse juhised lisatakse eraldi issue'ga.
 | `npm test`              | Testid (Vitest, alati `TZ=UTC`)   |
 | `npm run test:watch`    | Testid jälgimisrežiimis           |
 | `npm run test:coverage` | Testid koos katvuse raportiga     |
+| `npm run db:link`       | Seob Supabase CLI hostitud projektiga |
+| `npm run db:push`       | Rakendab migratsioonid hostitud andmebaasile |
+| `npm run db:types`      | Genereerib andmebaasi TypeScripti tüübid |
 
 ## Tiimi reeglid
 
