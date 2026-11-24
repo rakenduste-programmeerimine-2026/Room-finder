@@ -32,13 +32,16 @@ Supabase'i seadistuse juhised lisatakse eraldi issue'ga.
 
 ## Skriptid
 
-| Käsk                | Mida teeb                 |
-| ------------------- | ------------------------- |
-| `npm run dev`       | Arendusserver             |
-| `npm run build`     | Produktsiooni build       |
-| `npm run start`     | Käivitab buildi           |
-| `npm run lint`      | ESLint                    |
-| `npm run typecheck` | TypeScripti tüübikontroll |
+| Käsk                    | Mida teeb                         |
+| ----------------------- | --------------------------------- |
+| `npm run dev`           | Arendusserver                     |
+| `npm run build`         | Produktsiooni build               |
+| `npm run start`         | Käivitab buildi                   |
+| `npm run lint`          | ESLint                            |
+| `npm run typecheck`     | TypeScripti tüübikontroll         |
+| `npm test`              | Testid (Vitest, alati `TZ=UTC`)   |
+| `npm run test:watch`    | Testid jälgimisrežiimis           |
+| `npm run test:coverage` | Testid koos katvuse raportiga     |
 
 ## Tiimi reeglid
 
