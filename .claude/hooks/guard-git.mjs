@@ -2,11 +2,12 @@
 // PreToolUse hook for the Bash and PowerShell tools.
 // Blocks direct pushes to main, Pull Request merges and Pull Request approvals.
 // Exit code 2 blocks the command.
-// GitHub branch protection remains the real backstop: this hook cannot see
-// through shell variables, scripts or aliases.
+// Known limits: this hook cannot see through shell variables, scripts or
+// aliases. Branch protection on main in GitHub is the real backstop and must be
+// enabled by a repository administrator.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 const protectedBranches = new Set(['main']);
 const WRAPPERS = new Set(['env', 'command', 'sudo', 'time', 'nohup', 'exec']);
@@ -16,7 +17,8 @@ const PUSH_OPTIONS_WITH_VALUE = new Set(['-o', '--push-option', '--repo', '--rec
 const PUSH_EVERYTHING = new Set(['--all', '--branches', '--mirror']);
 
 // Splits a shell command into simple commands, respecting quotes.
-function parseCommands(text) {
+// PowerShell does not escape with a backslash, so Windows paths stay intact.
+function parseCommands(text, backslashEscapes) {
   const commands = [];
   let tokens = [];
   let token = '';
@@ -38,12 +40,12 @@ function parseCommands(text) {
     const char = text[i];
     if (quote) {
       if (char === quote) quote = null;
-      else if (char === '\\' && quote === '"' && i + 1 < text.length) token += text[(i += 1)];
+      else if (backslashEscapes && char === '\\' && quote === '"' && i + 1 < text.length) token += text[(i += 1)];
       else token += char;
     } else if (char === '"' || char === "'") {
       quote = char;
       hasToken = true;
-    } else if (char === '\\' && i + 1 < text.length) {
+    } else if (backslashEscapes && char === '\\' && i + 1 < text.length) {
       token += text[(i += 1)];
       hasToken = true;
     } else if (';|&()\n'.includes(char)) {
@@ -126,17 +128,22 @@ function gitViolation(args, cwd) {
   return null;
 }
 
+// The program name without its directory (either slash) and without `.exe`.
+function programName(token) {
+  return (token ?? '').split(/[\\/]/).pop().replace(/\.exe$/i, '');
+}
+
 function commandViolation(rawTokens, cwd) {
   const tokens = withoutRedirects(rawTokens);
   let start = 0;
   while (
     start < tokens.length &&
-    (/^[A-Za-z_]\w*=/.test(tokens[start]) || WRAPPERS.has(basename(tokens[start])))
+    (/^[A-Za-z_]\w*=/.test(tokens[start]) || WRAPPERS.has(programName(tokens[start])))
   ) {
     start += 1;
   }
 
-  const program = basename(tokens[start] ?? '').replace(/\.exe$/i, '');
+  const program = programName(tokens[start]);
   const args = tokens.slice(start + 1);
 
   if (program === 'git') return gitViolation(args, cwd);
@@ -155,8 +162,8 @@ function commandViolation(rawTokens, cwd) {
   return null;
 }
 
-function violation(command, cwd) {
-  for (const tokens of parseCommands(command)) {
+function violation(command, cwd, backslashEscapes = true) {
+  for (const tokens of parseCommands(command, backslashEscapes)) {
     const reason = commandViolation(tokens, cwd);
     if (reason) return reason;
   }
@@ -165,7 +172,11 @@ function violation(command, cwd) {
 
 try {
   const input = JSON.parse(readFileSync(0, 'utf8'));
-  const reason = violation(input.tool_input?.command ?? '', input.cwd ?? process.cwd());
+  const reason = violation(
+    input.tool_input?.command ?? '',
+    input.cwd ?? process.cwd(),
+    input.tool_name !== 'PowerShell',
+  );
   if (reason) {
     console.error(`Blocked: ${reason}. Use a feature branch and leave merging to the team.`);
     process.exit(2);

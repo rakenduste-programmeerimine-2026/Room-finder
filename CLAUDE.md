@@ -89,7 +89,7 @@ This is a team project with three roles. Each team member declares their role in
 |---|---|
 | Database & quality | `supabase/` (schema, migrations, policies, seed data), `src/lib/supabase/`, `src/proxy.ts`, `tests/db/`, `.github/workflows/`, CI and the Vercel setup |
 | Backend | The ASIO scraper, the time and room matching, Route Handlers, Server Actions and data access built on `src/lib/supabase/` |
-| Frontend | Pages, layouts and components in `src/app/` (Route Handlers excepted), styles and client-side logic |
+| Frontend | Pages, layouts and components in `src/app/` (Route Handlers and Server Actions excepted), styles and client-side logic |
 
 - Shared files (`package.json`, `CLAUDE.md`, `.claude/`, `README.md`, `docs/` and tooling config) may be changed by any role, through a Pull Request.
 - Tests belong to the role that owns the code they test.
@@ -107,8 +107,8 @@ This is a team project with three roles. Each team member declares their role in
 
 - A change is not complete merely because it compiles.
 - Before merging or releasing, run automated tests, type checking, linting, the production build, integration tests and database tests.
-- Unit tests and database tests (`tests/db/`, on PGlite) run in `npm test`. CI runs them with linting, type checking and the build on every push.
-- Integration tests (`tests/integration/`) need local Supabase and CI skips them, so run `npm run test:integration` locally before every Pull Request.
+- Unit tests and database tests (`tests/db/`, on PGlite) run in `npm test`. CI runs them with linting, type checking and the build on every push. PGlite and `tests/db/` are added with the first database tests.
+- Integration tests (`tests/integration/`) need local Supabase and CI skips them, so run `npm run test:integration` locally before every Pull Request, once that script exists. It is added with the first integration test.
 - All tests run with `TZ=UTC`. Cover time boundaries: midnight, day and week edges, and daylight saving changes wherever local time is shown.
 - Use equivalence partitioning and boundary-value analysis, including character length and similar constraints where useful.
 
