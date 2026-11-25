@@ -32,6 +32,113 @@ as $$
   end
 $$;
 
+-- Nested time windows (section 5.4): period -> day -> range -> slot.
+--
+-- Every start and end is a JSON string in exactly one format:
+--   ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$
+-- (UTC, whole seconds; no milliseconds, no other offset). Within this one
+-- fixed-width format, comparing the strings byte by byte (collation "C") orders
+-- them exactly like the instants, so the checks below need no cast to
+-- timestamptz, do not depend on the session time zone and are truly immutable.
+-- Calendar validity (no 30 February) and sibling overlaps are the app's job.
+
+create function public.is_utc_instant(value jsonb)
+returns boolean
+language sql immutable
+set search_path = ''
+as $$
+  select coalesce(
+    jsonb_typeof(value) = 'string'
+      and (value #>> '{}') ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$',
+    false
+  )
+$$;
+
+-- One node: an object with only allowed_keys, valid start < end, inside its
+-- parent (parent_start <= start, end <= parent_end) when it has one.
+create function public.is_valid_time_node(
+  node jsonb, allowed_keys text[], parent_start text, parent_end text
+) returns boolean
+language sql immutable
+set search_path = ''
+as $$
+  select case
+    when jsonb_typeof(node) is distinct from 'object' then false
+    when not (public.is_utc_instant(node -> 'start') and public.is_utc_instant(node -> 'end')) then false
+    when exists (select 1 from jsonb_object_keys(node) k where k <> all (allowed_keys)) then false
+    else (node ->> 'start') collate pg_catalog."C" < (node ->> 'end') collate pg_catalog."C"
+     and (parent_start is null
+          or parent_start collate pg_catalog."C" <= (node ->> 'start') collate pg_catalog."C")
+     and (parent_end is null
+          or (node ->> 'end') collate pg_catalog."C" <= parent_end collate pg_catalog."C")
+  end
+$$;
+
+-- True when node[key] is an array of min_count..200 elements.
+create function public.is_valid_time_children(node jsonb, key text, min_count integer)
+returns boolean
+language sql immutable
+set search_path = ''
+as $$
+  select case
+    when jsonb_typeof(node -> key) is distinct from 'array' then false
+    else jsonb_array_length(node -> key) between min_count and 200
+  end
+$$;
+
+create function public.is_valid_time_windows(windows jsonb)
+returns boolean
+language plpgsql immutable
+set search_path = ''
+as $$
+declare
+  _p jsonb;  -- level 1: period
+  _d jsonb;  -- level 2: day
+  _r jsonb;  -- level 3: range
+  _s jsonb;  -- level 4: slot (optional)
+begin
+  if jsonb_typeof(windows) is distinct from 'array'
+     or jsonb_array_length(windows) not between 1 and 50 then
+    return false;
+  end if;
+
+  for _p in select value from jsonb_array_elements(windows) loop
+    if not public.is_valid_time_node(_p, array['source', 'start', 'end', 'days'], null, null)
+       or coalesce(_p ->> 'source', '') not in ('tool', 'csv')
+       or not public.is_valid_time_children(_p, 'days', 1) then
+      return false;
+    end if;
+
+    for _d in select value from jsonb_array_elements(_p -> 'days') loop
+      if not public.is_valid_time_node(_d, array['start', 'end', 'ranges'], _p ->> 'start', _p ->> 'end')
+         or not public.is_valid_time_children(_d, 'ranges', 1) then
+        return false;
+      end if;
+
+      for _r in select value from jsonb_array_elements(_d -> 'ranges') loop
+        if not public.is_valid_time_node(_r, array['start', 'end', 'slots'], _d ->> 'start', _d ->> 'end') then
+          return false;
+        end if;
+
+        if _r ? 'slots' then
+          if not public.is_valid_time_children(_r, 'slots', 0) then
+            return false;
+          end if;
+          for _s in select value from jsonb_array_elements(_r -> 'slots') loop
+            -- Only start and end: a fifth level is rejected here.
+            if not public.is_valid_time_node(_s, array['start', 'end'], _r ->> 'start', _r ->> 'end') then
+              return false;
+            end if;
+          end loop;
+        end if;
+      end loop;
+    end loop;
+  end loop;
+
+  return true;
+end
+$$;
+
 create table public.searches (
   id                         uuid primary key default gen_random_uuid(),
   owner_id                   uuid not null default auth.uid()
@@ -78,9 +185,7 @@ create table public.searches (
   constraint searches_complexity_weights_valid
     check (public.is_valid_complexity_weights(complexity_weights)),
   constraint searches_time_windows_valid
-    check (case when jsonb_typeof(time_windows) = 'array'
-           then jsonb_array_length(time_windows) between 1 and 50
-           else false end),
+    check (public.is_valid_time_windows(time_windows)),
   constraint searches_time_windows_size
     check (octet_length(time_windows::text) <= 262144),
   constraint searches_csv_filename_length
