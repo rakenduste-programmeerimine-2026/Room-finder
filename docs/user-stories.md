@@ -1,6 +1,6 @@
 # User stories
 
-Built from the automata in `docs/automata/`. Times in guards and acceptance criteria are UTC; where a criterion is about what the user enters or sees, the Europe/Tallinn value is given next to its UTC value. "Data model" means `docs/data-model.md` in PR #35, not merged yet.
+Built from the automata in `docs/automata/`. Times in guards and acceptance criteria are UTC; where a criterion is about what the user enters or sees, the Europe/Tallinn value is given next to its UTC value. "Data model" means `docs/data-model.md` (merged with PR #35).
 
 ## Search journey
 

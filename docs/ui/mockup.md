@@ -4,7 +4,7 @@ Status: proposal for issue #17, waiting for team approval. Nothing in `src/app/`
 
 Figma file: [Ruumileidja – mockup ja kasutajateekond](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6). Desktop frames, 1440 px wide, Estonian UI, font Geist (the app font in `src/app/layout.tsx`). Colours are Figma variables that map to Tailwind tokens.
 
-The user journey that connects the screens is in [`docs/automata/search-journey.md`](../automata/search-journey.md), and its user stories are in [`docs/user-stories.md`](../user-stories.md). "Data model" below means `docs/data-model.md` in PR #35, which is not merged yet.
+The user journey that connects the screens is in [`docs/automata/search-journey.md`](../automata/search-journey.md), and its user stories are in [`docs/user-stories.md`](../user-stories.md). "Data model" below means `docs/data-model.md` (merged with PR #35).
 
 ## Screens
 

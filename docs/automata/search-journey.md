@@ -5,7 +5,7 @@ Code locations: none yet; the UI for #25, #26, #27, #32 and #33 will hold this s
 Decision: explicit by design
 Analysis: none
 
-The path of one organiser through the app, from opening it to the result. Screens refer to the frames in [`docs/ui/mockup.md`](../ui/mockup.md); UI-n are the open questions listed there. "Data model" means `docs/data-model.md` in PR #35, which is not merged yet.
+The path of one organiser through the app, from opening it to the result. Screens refer to the frames in [`docs/ui/mockup.md`](../ui/mockup.md); UI-n are the open questions listed there. "Data model" means `docs/data-model.md` (merged with PR #35).
 
 ## Diagram
 
