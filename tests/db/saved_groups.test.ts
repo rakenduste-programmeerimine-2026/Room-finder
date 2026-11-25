@@ -43,6 +43,9 @@ const curriculum = {
   degree_level: "Bakalaureuseõpe",
   programme: "Informaatika",
 };
+const withoutProgramme = Object.fromEntries(
+  Object.entries(curriculum).filter(([key]) => key !== "programme"),
+);
 
 describe("saved_groups constraints", () => {
   it.each<[string, Partial<Group>]>([
@@ -51,6 +54,21 @@ describe("saved_groups constraints", () => {
     ["1 room", { items: rooms(1) }],
     ["200 rooms", { items: rooms(200) }],
     ["minimal curriculum", { kind: "curriculum", items: [curriculum] }],
+    ["curriculum with empty courses", { kind: "curriculum", items: [{ ...curriculum, courses: [] }] }],
+    [
+      "full curriculum",
+      {
+        kind: "curriculum",
+        items: [
+          {
+            ...curriculum,
+            specialisation: "Tarkvaraarendus",
+            asio_id: "261123",
+            courses: [{ code: "IFI6001.DT", name: "Example course" }],
+          },
+        ],
+      },
+    ],
   ])("accepts %s", async (_, overrides) => {
     await expect(insertGroup(overrides)).resolves.toBeDefined();
   });
@@ -62,6 +80,16 @@ describe("saved_groups constraints", () => {
     ["0 items", { items: [] }, "saved_groups_items_valid"],
     ["201 items", { items: rooms(201) }, "saved_groups_items_valid"],
     ["an object instead of an array", { items: { room_code: "A-543" } }, "saved_groups_items_valid"],
+    ["a string item", { items: ["A-543"] }, "saved_groups_items_valid"],
+    ["a room item without room_code", { items: [{}] }, "saved_groups_items_valid"],
+    ["a room item with an extra key", { items: [{ room_code: "A", rank: 1 }] }, "saved_groups_items_valid"],
+    ["a numeric room_code", { items: [{ room_code: 5 }] }, "saved_groups_items_valid"],
+    ["a 33-character room_code", { items: [{ room_code: "C".repeat(33) }] }, "saved_groups_items_valid"],
+    ["a curriculum item in a room group", { items: [curriculum] }, "saved_groups_items_valid"],
+    ["a curriculum without programme", { kind: "curriculum", items: [withoutProgramme] }, "saved_groups_items_valid"],
+    ["a curriculum with an unknown key", { kind: "curriculum", items: [{ ...curriculum, year: 1 }] }, "saved_groups_items_valid"],
+    ["courses that are not an array", { kind: "curriculum", items: [{ ...curriculum, courses: {} }] }, "saved_groups_items_valid"],
+    ["a course without name", { kind: "curriculum", items: [{ ...curriculum, courses: [{ code: "X" }] }] }, "saved_groups_items_valid"],
     ["an unknown kind", { kind: "people" }, "invalid input value for enum"],
   ])("rejects %s", async (_, overrides, error) => {
     await expect(insertGroup(overrides)).rejects.toThrow(error);
