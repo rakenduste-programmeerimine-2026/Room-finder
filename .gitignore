@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code: personal settings and uncommitted experiments
+.claude/settings.local.json
+/experiments/
