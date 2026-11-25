@@ -34,7 +34,7 @@ Source: the team task description (backend role), quoted in issue #6 and in the 
 | 1.1 | Link to an existing event type (e.g. meeting) or add a new type for next time | `searches.event_type` (free text, trimmed); a new type exists once a search uses it. `rooms.event_types` links rooms to types (**Unconfirmed**). |
 | 1.1 | Event types ordered by popularity in the UI | Function `event_type_popularity()` returns only `(event_type, use_count)`: the types in `rooms.event_types`, types used by at least 2 different users, and the caller's own types; `use_count` counts all users' searches (section 4.4). |
 | 1.2 | Time tool: several days, several ranges per day | `searches.time_windows`: period → day → range → slot (section 5.4). |
-| 1.2 | Warning when the request concerns next semester's classes | Not in the database: the semester start date is a code constant or environment variable, `PLACEHOLDER(#6)`, or the backend reads it from ASIO (open question). The warning is shown by the frontend; the backend may also return it in `searches.result.warnings`. |
+| 1.2 | Warning when the request concerns next semester's classes | Not in the database: the semester start date is a code constant or environment variable, `PLACEHOLDER(#20)`, or the backend reads it from ASIO (open question). The warning is shown by the frontend; the backend may also return it in `searches.result.warnings`. |
 | 1.3 | Optionally choose curricula and courses (structure as in ASIO) | `searches.curricula` (snapshot of the choice, ranked). The catalogue itself is read live from ASIO (**Unconfirmed**, open question). |
 | 1.3 | Choose an earlier group, change it, save under a new name | `saved_groups` with `kind = 'curriculum'`; "save under a new name" inserts a new row. Unique name per owner and kind. |
 | 1.3 | Rank curricula | Array order in `saved_groups.items` and `searches.curricula`. |
@@ -115,7 +115,7 @@ Common to all tables: `created_at timestamptz not null default now()`, `updated_
 | `code` | `text` | PK | – | 1–32 characters, no surrounding spaces. ASIO room code. |
 | `capacity` | `integer` | not null | – | `capacity > 0`. |
 | `bookable_for_teaching` | `boolean` | not null | `false` | |
-| `aliases` | `text[]` | not null | `'{}'` | No null or empty elements, each 1–100 characters, at most 20. Unique across rooms (trigger). GIN index. |
+| `aliases` | `text[]` | not null | `'{}'` | No null or empty elements, each trimmed and 1–100 characters, at most 20. Unique across rooms (trigger). GIN index. |
 | `complexity` | `room_acquisition_complexity` | not null | `'other'` | Enum: `google_form`, `institute_permission`, `university_permission`, `contact_owner`, `other`. |
 | `event_types` | `text[]` | not null | `'{}'` | Event types the room suits (**Unconfirmed**). Same element rules as `aliases`, 1–60 characters. |
 
@@ -139,7 +139,7 @@ Index: the unique constraint `(owner_id, kind, name)` also serves "list my group
 |---|---|---|---|---|
 | `id` | `uuid` | PK | `gen_random_uuid()` | |
 | `owner_id` | `uuid` | not null | `auth.uid()` | FK `auth.users(id) on delete cascade`. |
-| `name` | `text` | null | – | Optional label, 1–100 characters. |
+| `name` | `text` | null | – | Optional label, 1–100 characters, trimmed. |
 | `event_type` | `text` | not null | – | 1–60 characters, trimmed (`btrim(event_type) = event_type`). Grouped case-insensitively by `event_type_popularity()`. |
 | `duration_minutes` | `integer` | not null | – | 5–1440. **Unconfirmed** addition: the solver cannot choose a time without the event length. |
 | `attendees` | `integer` | null | – | 1–10000. **Unconfirmed** addition: makes `rooms.capacity` usable. |
@@ -186,7 +186,7 @@ Rejected, among others: milliseconds (`…08:00:00.000Z`), any offset other than
 
 ## 5. JSON shapes
 
-TypeScript types are written in `src/lib/supabase/json-types.ts` in stage 3 and mirrored by the backend's validation (zod or similar, backend decision). The database checks the structure that protects integrity; the application gives friendly error messages.
+The TypeScript types below describe the JSON; the generated `src/lib/supabase/database.types.ts` types these columns only as `Json`. Typed helpers and the application's validation (zod or similar) are a backend decision. The database checks the structure that protects integrity; the application gives friendly error messages.
 
 ### 5.1 Room item (`saved_groups.items` when `kind = 'room'`, `searches.room_items`)
 
@@ -349,14 +349,14 @@ The database only checks that `result` is a JSON object; its content belongs to 
 | `searches.status`, `result`, `error` | The backend with the service role, after the scraper and the solver run. |
 | Bookings and class times | ASIO, read live by the scraper; not stored. |
 | Curriculum and course catalogue | ASIO, read live by the scraper (**Unconfirmed**); only the user's choices are stored. |
-| Default complexity weights, semester start | Code constants or environment variables, `PLACEHOLDER(#6)`. |
+| Default complexity weights, semester start | Code constants or environment variables: weights `PLACEHOLDER(#22)`, semester start `PLACEHOLDER(#20)`. |
 
 ## 8. Time rules
 
 - Every time column is `timestamptz`; every time inside `jsonb` is an ISO 8601 UTC string in exactly the form `YYYY-MM-DDTHH:MM:SSZ` (whole seconds, `Z`, no milliseconds, no other offset), enforced by `is_valid_time_windows()` for `time_windows`.
 - The server computes in UTC. Tests and CI run with `TZ=UTC`.
 - Europe/Tallinn appears only in the user interface; the frontend converts at that boundary, including across daylight saving changes (e.g. a local day is 23 or 25 hours long on the change dates, which the day interval represents exactly).
-- Tests cover midnight, day and week edges and the 2026 and 2027 daylight saving dates.
+- Tests cover midnight, day, week and year edges and the 2026 daylight saving dates (a 23-hour and a 25-hour local day).
 
 ## 9. Open questions
 
@@ -366,7 +366,7 @@ The database only checks that `result` is a JSON object; its content belongs to 
 | Q2 | CSV columns | One row = one range: `date,start,end` in UTC ISO 8601 (issue #6); optional fourth/fifth columns `slot_start,slot_end`. The backend groups rows into periods and days. | Backend |
 | Q3 | Default complexity weights and meaning | 1 = no penalty, 0 = avoid; values in 5.3; one weight per class per search, no per-room override. | Backend |
 | Q4 | Are `rooms.event_types` needed? | Yes, to link a room to suitable event types and to seed the popularity list; can be dropped if unused. | Backend |
-| Q5 | Source of semester dates for the next-semester warning | Code constant or environment variable `PLACEHOLDER(#6)`, or read from ASIO. Not a table. | Backend |
+| Q5 | Source of semester dates for the next-semester warning | Code constant or environment variable `PLACEHOLDER(#20)`, or read from ASIO. Not a table. | Backend |
 | Q6 | Source of the curriculum and course list | Read live from ASIO by the scraper; the database stores only the user's choices. | Backend |
 | Q7 | History of results | Searches stay until the owner deletes them; no automatic clean-up. | Team |
 | Q8 | Event length and attendee count | New columns `duration_minutes` (required) and `attendees` (optional); not in the task text but needed by the solver and the capacity data. | Backend |
@@ -400,7 +400,7 @@ Reported, not silently overridden (Standing rule 1):
 | #10 RLS policies | Closed by this PR | Policies and privileges in each migration. |
 | #11 PGlite harness and tests | Closed by this PR | `tests/db/`. |
 | #12 seed data | Closed by this PR | `supabase/seed.sql`. Semester configuration moves to a code constant. |
-| #13 hosted Supabase project and db:push | Closed by this PR once the user has run the steps in stage 3 | Link, push and generated types. |
+| #13 hosted Supabase project and db:push | Closed by this PR | Linked, migrations and seed pushed, types generated; hosted smoke test 12/12 PASS. |
 | #18 search requests and results | Closed by this PR | `searches`. |
 | #28 curricula, courses and curriculum groups (database) | Closed by this PR, partly; close the catalogue part as "not planned" | Curriculum groups are `saved_groups` with `kind = 'curriculum'`; the catalogue tables are not built (Q6). The original task list named #30, which is a backend issue; #28 is the matching database issue. |
 | #29 CSV storage bucket | Close as "not planned" | The raw CSV is not kept. If the backend needs it later, reopen. |
