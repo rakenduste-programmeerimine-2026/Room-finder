@@ -28,7 +28,60 @@ Rakendus avaneb aadressil http://localhost:3000.
 
 ### Supabase
 
-Supabase'i seadistuse juhised lisatakse eraldi issue'ga.
+Tiimil on **üks ühine hostitud Supabase'i projekt** (Vercel'i preview ja
+produktsioon). Kontot kasutaja ei loo: rakendus kasutab Supabase'i anonüümset
+sisselogimist, nii et iga brauser saab oma kasutaja ID ja RLS näitab igaühele
+ainult tema enda gruppe ja otsinguid. Andmemudel: [`docs/data-model.md`](docs/data-model.md).
+
+#### Ühendamine (iga tiimiliige)
+
+1. Kopeeri `.env.example` → `.env.local`.
+2. Küsi andmebaasi rollilt hostitud projekti URL ja **publishable key** ning
+   pane need `.env.local`-i (`NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Kohaliku Supabase'i
+   (`npx supabase start`, vajab Dockerit) väärtused annab `npx supabase status`.
+3. **Secret key (`sb_secret_…`) ega `service_role` võtit ei panda kunagi
+   `.env.local`-i, repo'sse ega kliendikoodi.** Seda kasutab ainult serverikood
+   keskkonnamuutujast.
+
+#### Andmebaasi skeem
+
+| Tabel          | Sisu                                                                |
+| -------------- | ------------------------------------------------------------------- |
+| `rooms`        | Ruumide kataloog; kliendid ainult loevad                            |
+| `saved_groups` | Kasutaja salvestatud ruumi- ja õppekavagrupid eelisjärjestusega     |
+| `searches`     | Otsingu sisendite koopia, staatus ja tulemus (tulemuse kirjutab server) |
+
+Pilveprojektis on praegu **näidisruumid koodidega `DEMO-…`**
+([`supabase/seed.sql`](supabase/seed.sql)). Need jäävad sinna seni, kuni backend
+täidab päris ruumide kataloogi (`docs/data-model.md`, Q9).
+
+#### Uus migratsioon
+
+1. Loo fail `supabase/migrations/<YYYYMMDDHHMMSS>_<kirjeldus>.sql`
+   (nt `npx supabase migration new add_x`). Olemasolevaid migratsioone, mis on
+   juba pilve rakendatud, ei muudeta – tee uus.
+2. Lisa testid kausta `tests/db/` (piirväärtused, RLS) ja käivita `npm test`.
+3. Skeemi muudatused käivad ainult migratsioonidena ja läbi PR-i; Supabase'i
+   dashboard'is otse muudatusi ei tehta.
+
+#### Migratsioonide rakendamine pilve (andmebaasi roll)
+
+Enne PR-i liitmist, sest liitmine deploy'b:
+
+```bash
+npx supabase login
+npm run db:link                     # vali tiimi projekt
+npm run db:push -- --include-seed   # migratsioonid + DEMO-ruumid (seed on idempotentne)
+npm run db:types                    # uuendab src/lib/supabase/database.types.ts
+```
+
+#### Andmebaasi testid
+
+`npm test` käivitab ka `tests/db/` testid: need rakendavad kõik migratsioonid
+ja seed'i PGlite'is (Postgres mälus, `tests/db/supabase-stub.sql` asendab
+Supabase'i rolle ja `auth.uid()`). Dockerit ega päris Supabase'i pole vaja;
+testid jooksevad ka CI-s.
 
 ## Skriptid
 

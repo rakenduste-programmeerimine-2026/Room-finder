@@ -32,7 +32,7 @@ Source: the team task description (backend role), quoted in issue #6 and in the 
 | 1.1 | Acquisition complexity class (Google Form, institute permission, university permission, write to owner, other) | `rooms.complexity`, enum `room_acquisition_complexity`. |
 | 1.1 | User-adjustable weight 0–1, rounded float | `searches.complexity_weights` (one weight per complexity class, 0–1, at most 2 decimals, checked by the database). Defaults are a code constant (**Unconfirmed**, section 9). |
 | 1.1 | Link to an existing event type (e.g. meeting) or add a new type for next time | `searches.event_type` (free text, trimmed); a new type exists once a search uses it. `rooms.event_types` links rooms to types (**Unconfirmed**). |
-| 1.1 | Event types ordered by popularity in the UI | Function `event_type_popularity()` returns only `(event_type, use_count)` over all users' searches, plus the types in `rooms.event_types` with count 0. |
+| 1.1 | Event types ordered by popularity in the UI | Function `event_type_popularity()` returns only `(event_type, use_count)`: the types in `rooms.event_types`, types used by at least 2 different users, and the caller's own types; `use_count` counts all users' searches (section 4.4). |
 | 1.2 | Time tool: several days, several ranges per day | `searches.time_windows`: period → day → range → slot (section 5.4). |
 | 1.2 | Warning when the request concerns next semester's classes | Not in the database: the semester start date is a code constant or environment variable, `PLACEHOLDER(#6)`, or the backend reads it from ASIO (open question). The warning is shown by the frontend; the backend may also return it in `searches.result.warnings`. |
 | 1.3 | Optionally choose curricula and courses (structure as in ASIO) | `searches.curricula` (snapshot of the choice, ranked). The catalogue itself is read live from ASIO (**Unconfirmed**, open question). |
@@ -154,13 +154,23 @@ Index: the unique constraint `(owner_id, kind, name)` also serves "list my group
 | `result` | `jsonb` | null | – | Set by the server code. Check: `status = 'done'` ⇔ `result is not null`. |
 | `error` | `text` | null | – | Up to 1000 characters. Check: `status = 'failed'` ⇔ `error is not null`. |
 
-Indexes: `(owner_id, created_at desc)` for "my searches"; `(lower(event_type))` for the popularity function.
+Index: `(owner_id, created_at desc)` for "my searches". `event_type_popularity()` reads and groups every row anyway, so an index on `lower(event_type)` would not help it and is not created.
 
 **Snapshot instead of reference.** `room_items` and `curricula` are copies, and `source_*_group_id` only remembers where they came from. A saved group can be edited or deleted later, but a search must stay exactly as it was run, so its result can still be explained.
 
 ### 4.4 Function `event_type_popularity()`
 
-`returns table (event_type text, use_count bigint)`, `language sql`, `stable`, `security definer`, `set search_path = ''`. It counts `searches.event_type` across all users (grouped by `lower()`, showing the most common spelling) and adds every `rooms.event_types` value with count 0, so that seeded types such as `koosolek` exist before the first search. Ordered by `use_count desc, event_type`. It never returns ids, owners, names or times. Executable by `authenticated` only.
+`returns table (event_type text, use_count bigint)`, `language sql`, `stable`, `security definer`, `set search_path = ''`. No parameters. It counts `searches.event_type` across all users (grouped by `lower()`, showing the most common spelling) and adds every `rooms.event_types` value with count 0, so that seeded types such as `koosolek` exist before the first search. Ordered by `use_count desc, event_type`. It never returns ids, owners, names or times.
+
+`event_type` is free text, so a type typed by one user must not leak to others (**Unconfirmed decision**, Q12). A type is returned only when it is:
+
+- seeded (in `rooms.event_types`), or
+- used by at least 2 different owners, or
+- used by the caller (`owner_id = auth.uid()`).
+
+`use_count` still counts the searches of all users. A new type therefore appears to its author at once and to everyone once a second user picks it.
+
+Privileges: `revoke execute` from `public` and `anon`, `grant execute` to `authenticated` only.
 
 ### 4.5 Function `is_valid_time_windows(jsonb)`
 
@@ -172,7 +182,7 @@ Every `start` and `end` must be a JSON string matching exactly one format:
 ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$
 ```
 
-Rejected, among others: milliseconds (`…08:00:00.000Z`), any offset other than `Z` (`…08:00:00+02:00`, `…+00:00`), a lowercase `z`, a space instead of `T`, a date without a time, and missing seconds. Because only this one fixed-width, zero-padded UTC format is accepted, comparing the strings orders them exactly like the instants they represent. So start/end order and nesting are checked with text comparison, with no cast to `timestamptz`, no dependence on the session time zone, and an honest `immutable` label. Tests cover each rejected form.
+Rejected, among others: milliseconds (`…08:00:00.000Z`), any offset other than `Z` (`…08:00:00+02:00`, `…+00:00`), a lowercase `z`, a space instead of `T`, a date without a time, and missing seconds. Because only this one fixed-width, zero-padded UTC format is accepted, comparing the strings byte by byte orders them exactly like the instants they represent. The comparisons use the `"C"` collation (`collate pg_catalog."C"`), so the order does not depend on the database locale. So start/end order and nesting are checked with text comparison, with no cast to `timestamptz`, no dependence on the session time zone, and an honest `immutable` label. Tests cover each rejected form.
 
 ## 5. JSON shapes
 
@@ -363,6 +373,7 @@ The database only checks that `result` is a JSON object; its content belongs to 
 | Q9 | Production room catalogue | Seed for development; production by a data migration or a service-role upsert. | Backend |
 | Q10 | Does the search run asynchronously? | Yes (status enum); a synchronous run simply writes `done` at once. | Backend |
 | Q11 | Does the backend save the search result in the database (`searches.status`, `result`, `error` with the service role) or only send it to the frontend? | It saves it with the service role: safe, because the client cannot fake a result (clients have no update privilege on these columns). The service role key is used only in server code and never reaches the client or the repository. | Backend |
+| Q12 | Which event types may a user see? | Seeded types, types used by at least 2 different users, and the user's own types; `use_count` counts all users. A single user's free text never reaches others. | Team |
 
 ### Differences from the earlier working assumptions in issue #6
 
