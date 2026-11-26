@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
+/* IBM Carbon, Gray 10 theme (#17: "IBM Carbon (Recommended)"), with Tailwind only. */
+@theme {
+  --color-page: #f4f4f4;
+  --color-layer: #ffffff;
+  --color-subtle: #e8e8e8;
+  --color-strong: #8d8d8d;
+  --color-ink: #161616;
+  --color-ink-muted: #525252;
+  --color-helper: #6f6f6f;
+  --color-disabled: #c6c6c6;
+  --color-interactive: #0f62fe;
+  --color-interactive-hover: #0050e6;
+  --color-secondary: #393939;
+  --color-secondary-hover: #474747;
+  --color-error: #da1e28;
+  --color-error-ink: #da1e28;
+  --color-warning: #f1c21b;
+  --color-warning-bg: #fcf4d6;
+  --color-warning-ink: #8e6a00;
+  --color-shell: #161616;
+  --color-shell-ink: #f4f4f4;
+  --color-shell-muted: #c6c6c6;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* react-toastify, as Carbon's dark (high-contrast) toast. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --toastify-color-dark: #393939;
+  --toastify-font-family: var(--font-plex-sans), system-ui, sans-serif;
+  --toastify-toast-bd-radius: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-page);
+  color: var(--color-ink);
 }
