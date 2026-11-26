@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
 Status: explicit (design; being built)
-Code locations: Composing, time windows: `src/app/_components/time-window-tool.tsx` (#26); the other states come with #25, #27, #32 and #33
+Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37); time windows: `src/app/_components/time-window-tool.tsx` (#26); both in `src/app/_components/search-form.tsx`. The other states come with #25, #27, #32 and #33
 Decision: explicit by design
 Analysis: none
 

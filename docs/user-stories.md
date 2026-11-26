@@ -181,13 +181,15 @@ Acceptance criteria:
 - Given a result with no best time, when it is shown, then suggestions, "Muuda sisendeid" and "Uus otsing" are shown.
 - Given that view, when I press "Muuda sisendeid", then my inputs are kept; when I press "Uus otsing", then the form is empty.
 
-### US-014: Event length and attendees
+### US-014: Event name, length and attendees
 
 Automaton: search journey, Composing → Composing
-Source: [UNDERSTANDING] `duration_minutes` and `attendees` (data model 4.3, Q8)
+Source: [UNDERSTANDING] `name`, `duration_minutes` and `attendees` (data model 4.3, Q8); the 12-hour limit is [REQUIREMENT #37] "Kestus UI-s kuni 12 h (Recommended)"
 
-As an organiser, I want to give the event length and the number of people, so that only long enough times and big enough rooms are offered.
+As an organiser, I want to give the event a name, its length and the number of people, so that only long enough times and big enough rooms are offered.
 
 Acceptance criteria:
-- Given a duration of 5 or 1440 minutes, then it is accepted; given 4 or 1441, then it is rejected.
+- Given a duration of 5 or 720 minutes, then it is accepted; given 4 or 721, then it is rejected. The database still allows up to 1440.
+- Given a changed duration, then every candidate range shorter than it is marked.
 - Given no attendee count, then the search can still run; given 1 or 10000, then it is accepted; given 0 or 10001, then it is rejected.
+- Given no name, then the search can still run; given a name of 100 characters, then it is accepted; given 101, then it is rejected.
