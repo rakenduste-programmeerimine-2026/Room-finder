@@ -48,8 +48,6 @@ export type Built = { ok: true; windows: TimeWindows } | { ok: false; issues: Dr
 
 const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
-const byStart = (a: Interval, b: Interval) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
-
 function toRange(date: LocalDate, draft: DraftRange, durationMinutes: number): Range | RangeProblem {
   if (draft.start === "24:00") return "invalid_time";
   const start = tallinnToUtc(date, draft.start);
@@ -68,9 +66,10 @@ function toRange(date: LocalDate, draft: DraftRange, durationMinutes: number): R
 
 /**
  * Checks the tool input and builds `searches.time_windows` from it: one "tool"
- * period from the first day's start to the last day's end, with days and
- * ranges in time order. Overlapping ranges are kept as entered; the solver
- * takes their union (data model 5.4).
+ * period from the earliest day's start to the latest day's end. Days, and
+ * ranges within a day, keep the user's order, which is their preference rank
+ * (#26). Overlapping ranges are kept as entered; the solver takes their union
+ * (data model 5.4).
  */
 export function buildTimeWindows(days: DraftDay[], durationMinutes: number): Built {
   const issues: DraftIssue[] = [];
@@ -103,14 +102,13 @@ export function buildTimeWindows(days: DraftDay[], durationMinutes: number): Bui
       if (typeof result === "string") issues.push({ code: result, day, range: index });
       else ranges.push(result);
     });
-    built.push({ ...bounds, ranges: ranges.sort(byStart) });
+    built.push({ ...bounds, ranges });
   });
 
   if (issues.length > 0) return { ok: false, issues };
-  built.sort(byStart);
-  const windows: TimeWindows = [
-    { source: "tool", start: built[0].start, end: built[built.length - 1].end, days: built },
-  ];
+  const start = built.map((d) => d.start).reduce((a, b) => (b < a ? b : a));
+  const end = built.map((d) => d.end).reduce((a, b) => (b > a ? b : a));
+  const windows: TimeWindows = [{ source: "tool", start, end, days: built }];
   if (JSON.stringify(windows).length > MAX_JSON_LENGTH) {
     return { ok: false, issues: [{ code: "too_large" }] };
   }

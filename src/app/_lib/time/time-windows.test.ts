@@ -25,7 +25,7 @@ const dateAfter = (start: string, days: number) =>
   new Date(Date.parse(`${start}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 describe("buildTimeWindows", () => {
-  it("builds one tool period with the days and ranges sorted, in UTC", () => {
+  it("builds one tool period in UTC and keeps the user's order as the preference rank", () => {
     const built = buildTimeWindows(
       [day("2026-12-02", ["09:00", "11:30"]), day("2026-12-01", ["13:00", "16:00"], ["10:00", "12:00"])],
       ninety,
@@ -35,21 +35,21 @@ describe("buildTimeWindows", () => {
       windows: [
         {
           source: "tool",
-          start: "2026-11-30T22:00:00Z",
+          start: "2026-11-30T22:00:00Z", // earliest day, although it is ranked second
           end: "2026-12-02T22:00:00Z",
           days: [
-            {
-              start: "2026-11-30T22:00:00Z",
-              end: "2026-12-01T22:00:00Z",
-              ranges: [
-                { start: "2026-12-01T08:00:00Z", end: "2026-12-01T10:00:00Z" },
-                { start: "2026-12-01T11:00:00Z", end: "2026-12-01T14:00:00Z" },
-              ],
-            },
             {
               start: "2026-12-01T22:00:00Z",
               end: "2026-12-02T22:00:00Z",
               ranges: [{ start: "2026-12-02T07:00:00Z", end: "2026-12-02T09:30:00Z" }],
+            },
+            {
+              start: "2026-11-30T22:00:00Z",
+              end: "2026-12-01T22:00:00Z",
+              ranges: [
+                { start: "2026-12-01T11:00:00Z", end: "2026-12-01T14:00:00Z" },
+                { start: "2026-12-01T08:00:00Z", end: "2026-12-01T10:00:00Z" },
+              ],
             },
           ],
         },
