@@ -23,6 +23,7 @@ import {
   type TimeWindows,
 } from "@/app/_lib/time/time-windows";
 import { useBackend } from "@/app/_ports/backend";
+import { field } from "./field";
 import { ChevronDown, ChevronUp, Clock, Close, Warning } from "./icons";
 
 type RangeRow = { id: number; start: LocalTime; end: LocalTime };
@@ -37,8 +38,6 @@ export type TimeWindowToolProps = {
 
 const DEFAULT_RANGE = { start: "10:00", end: "12:00" };
 
-const field =
-  "h-10 border-0 border-b border-strong bg-layer px-3 text-sm text-ink focus:outline-2 focus:-outline-offset-2 focus:outline-interactive aria-[invalid=true]:outline-2 aria-[invalid=true]:-outline-offset-2 aria-[invalid=true]:outline-error";
 const iconButton =
   "grid size-8 place-items-center text-ink-muted hover:bg-subtle disabled:text-disabled disabled:hover:bg-transparent";
 const ghostButton = "h-8 px-3 text-sm text-interactive hover:bg-subtle disabled:text-disabled";
@@ -167,7 +166,7 @@ export function TimeWindowTool({ durationMinutes, onChange }: TimeWindowToolProp
                   onChange={(e) => setDay(d, { date: e.target.value })}
                   aria-invalid={problems.length > 0}
                   aria-describedby={messageId}
-                  className={`${field} bg-layer`}
+                  className={field}
                 />
                 {valid && <span className="font-semibold">{formatLocalDate(day.date)}</span>}
                 <span className="ml-auto flex items-center">
@@ -197,11 +196,11 @@ export function TimeWindowTool({ durationMinutes, onChange }: TimeWindowToolProp
                   return (
                     <li key={range.id} className="flex flex-wrap items-center gap-2">
                       <span className="w-6 text-xs font-semibold text-ink-muted">{r + 1}.</span>
-                      <input type="time" aria-label={`${rangeLabel}: algus`} value={range.start} className={`${field} bg-layer`}
+                      <input type="time" aria-label={`${rangeLabel}: algus`} value={range.start} className={field}
                         aria-invalid={issue !== undefined} aria-describedby={rangeMessageId}
                         onChange={(e) => setRanges(d, day.ranges.map((x, i) => (i === r ? { ...x, start: e.target.value } : x)))} />
                       <span aria-hidden="true">–</span>
-                      <input type="time" aria-label={`${rangeLabel}: lõpp`} value={range.end} className={`${field} bg-layer`}
+                      <input type="time" aria-label={`${rangeLabel}: lõpp`} value={range.end} className={field}
                         aria-invalid={issue !== undefined} aria-describedby={rangeMessageId}
                         onChange={(e) => setRanges(d, day.ranges.map((x, i) => (i === r ? { ...x, end: e.target.value } : x)))} />
                       <button type="button" className={iconButton} aria-label={`${rangeLabel}: liiguta üles`} disabled={r === 0}
