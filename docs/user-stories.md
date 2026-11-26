@@ -83,6 +83,7 @@ Acceptance criteria:
 - Given the local day 29 March 2026 (23 hours), when it is sent, then it is 2026-03-28T22:00:00Z–2026-03-29T21:00:00Z.
 - Given the local day 25 October 2026 (25 hours), when it is sent, then it is 2026-10-24T21:00:00Z–2026-10-25T22:00:00Z.
 - Given a range whose start equals or is after its end, when I add it, then it is marked invalid and the search cannot start.
+- Given 23:00–00:00 entered, when the search is sent, then the end is the next local midnight (23:00–24:00); given 00:00–00:00, then the range is marked invalid.
 - Given a 1 h 30 min event, a range of exactly 1 h 30 min is valid and one of 1 h 29 min is marked invalid (UI-10, working assumption).
 
 ### US-007: Warn about next semester
