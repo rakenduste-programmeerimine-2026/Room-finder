@@ -48,6 +48,15 @@ export type Built = { ok: true; windows: TimeWindows } | { ok: false; issues: Dr
 
 const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
+/**
+ * The end time to use for a range entered with `<input type="time">`, which
+ * cannot hold 24:00: an end of 00:00 after a later start means the end of the
+ * day. 00:00–00:00 stays as entered and is invalid (#26).
+ */
+export function readEnd(start: LocalTime, end: LocalTime): LocalTime {
+  return end === "00:00" && start !== "00:00" ? "24:00" : end;
+}
+
 function toRange(date: LocalDate, draft: DraftRange, durationMinutes: number): Range | RangeProblem {
   if (draft.start === "24:00") return "invalid_time";
   const start = tallinnToUtc(date, draft.start);

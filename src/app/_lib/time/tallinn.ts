@@ -134,6 +134,18 @@ const clock = new Intl.DateTimeFormat("et-EE", {
   minute: "2-digit",
 });
 
+const tallinnDate = new Intl.DateTimeFormat("et-EE", {
+  timeZone: TALLINN,
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/** The Tallinn calendar date of a UTC instant: "1. veebruar 2027". */
+export function formatTallinnDate(instant: UtcInstant): string {
+  return tallinnDate.format(Date.parse(instant));
+}
+
 /** A local date for display: "Teisipäev, 1. detsember 2026". */
 export function formatLocalDate(date: LocalDate): string {
   const parts = parseLocalDate(date);
