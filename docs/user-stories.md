@@ -59,22 +59,25 @@ Acceptance criteria:
 ### US-005: Weigh room complexity classes
 
 Automaton: search journey, Composing → Composing
-Source: [REQUIREMENT #25] "kasutaja poolt reguleeritav kaaluviht 0-1ni ümardatud float"
+Source: [REQUIREMENT #25] "kasutaja poolt reguleeritav kaaluviht 0-1ni ümardatud float" and [REQUIREMENT #17] "see võiks mingi silma taga/ dropdowni taga peidetav olla"
 
 As an organiser, I want to set a weight from 0 to 1 for each complexity class, so that rooms that are hard to get count less.
 
 Acceptance criteria:
+- Given a new search, when the form opens, then the weights are hidden in the collapsed "Täpsemad seaded" section and use the defaults.
 - Given a weight field, when I enter 0,456, then it becomes 0,46.
 - Given a weight field, when I enter 1,2 or −0,1, then it becomes 1,00 or 0,00.
 
 ### US-006: Enter days and time ranges
 
 Automaton: search journey, Composing → Composing
-Source: [REQUIREMENT #26] "kasutaja saab lisada päeva, päevale mitu võimaliku vahemiku, saab lisada mitu võimaliku päeva."
+Source: [REQUIREMENT #26] "kasutaja saab lisada päeva, päevale mitu võimaliku vahemiku, saab lisada mitu võimaliku päeva." and [REQUIREMENT #17] "Võiks kirjas olla, et on kandidaat ajad ja neid võiks ka saada järjestada"
 
 As an organiser, I want to add several days with several ranges each, so that I can list every time that could work.
 
 Acceptance criteria:
+- Given days 1 and 2 December, when I move 2 December up, then it is ranked first and sent first in `time_windows`.
+- Given ranges 10:00–12:00 and 13:00–16:00 on one day, when I move the second up, then it is sent first within that day.
 - Given 1 December 2026 10:00–12:00 local, when the search is sent, then the range is 2026-12-01T08:00:00Z–2026-12-01T10:00:00Z.
 - Given 1 December 2026 23:00–24:00 local, when the search is sent, then the range is 2026-12-01T21:00:00Z–2026-12-01T22:00:00Z.
 - Given the local day 29 March 2026 (23 hours), when it is sent, then it is 2026-03-28T22:00:00Z–2026-03-29T21:00:00Z.
@@ -96,12 +99,13 @@ Acceptance criteria:
 ### US-008: Upload a CSV file
 
 Automaton: search journey, CSV upload (every transition)
-Source: [REQUIREMENT #33] "Alternatiivselt saab 1.2) asemel kindla struktuuriga csv faili üles laadida, mida backend selle asemel või koos sellega töötlema hakkab." and "Upload with format help; errors shown as toastify warnings."
+Source: [REQUIREMENT #33] "Alternatiivselt saab 1.2) asemel kindla struktuuriga csv faili üles laadida, mida backend selle asemel või koos sellega töötlema hakkab." and "Upload with format help; errors shown as toastify warnings." and [REQUIREMENT #17] "vaata et kui keegi mingi csv tirib siis isegi teises vaates olles läheks automaatselt laadi csv -fail-ile üle"
 
 As an organiser, I want to upload times as a CSV file instead of or together with manual input, so that I can reuse a list I already have.
 
 Acceptance criteria:
 - Given no file, when I open the CSV tab, then the format, an example and a sample file to download are shown.
+- Given the manual tab is open, when I drag a CSV file over the page, then a drop zone covers the page; when I drop it, then the CSV tab opens and the file is checked.
 - Given a file that is not .csv, or 1 MB + 1 byte, when I drop it, then it is not sent and an error toast says why; a 1 MB .csv file is sent.
 - Given a valid file, when the server accepts it, then the file name and the number of rows and days are shown.
 - Given a file with bad rows, when the server rejects it, then an error toast names the rows and the file is marked invalid.

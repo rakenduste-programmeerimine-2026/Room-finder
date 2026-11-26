@@ -53,6 +53,7 @@ S is the first local (Europe/Tallinn) date of the next semester; its source is U
 |---|---|---|---|---|
 | [*] | open the app | anonymous session exists or is created | Composing | [REQUIREMENT #17] "Kontot pole vaja luua nagu eelmises andmebaas töötab samal põhimõttel." [REQUIREMENT CLAUDE.md] "Users are identified by Supabase anonymous sign-in (`ensureAnonymousSession` in `src/lib/supabase/`)." |
 | Composing | edit an input | – | Composing | [UNDERSTANDING] |
+| Composing | move a day, or a range within its day, up or down | – | Composing, ranks renumbered | [REQUIREMENT #17] "Võiks kirjas olla, et on kandidaat ajad ja neid võiks ka saada järjestada" (Tormi's review) |
 | Composing | add a day | local date ≥ S | Composing, warning toast; banner in the time section | [REQUIREMENT #26] "Juhul kui küsitakse andmeid järgmisel poolaastal toimuvate tundide kohta lisa hoiatus" and acceptance criterion "The next-semester warning is shown with toastify." The banner is [UNDERSTANDING] (#17 Unconfirmed decisions). |
 | Composing | "Muuda gruppi" or "+ Uus grupp" in Ruumid | – | RoomGroupEditor | [UNDERSTANDING] |
 | RoomGroupEditor | save or save under a new name | trimmed name 1–100 characters and not used by the user's other room groups; 1–200 rooms | Composing, success toast, group selected | Saving: [REQUIREMENT #25] "neile nime anda ja neid salvestada". Limits: [UNDERSTANDING] (data model 4.2). |
@@ -105,6 +106,7 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 | From | Event | Guard | To | Source |
 |---|---|---|---|---|
 | NoFile | choose or drop a file | extension `.csv` and at most 1 MB | Checking | [UNDERSTANDING] (1 MB is an unconfirmed limit) |
+| NoFile | drop a file anywhere on the page while the manual tab is open | as above | Checking, CSV tab opened | [REQUIREMENT #17] "vaata et kui keegi mingi csv tirib siis isegi teises vaates olles läheks automaatselt laadi csv -fail-ile üle" (Tormi's review) |
 | NoFile | choose or drop a file | not `.csv`, or over 1 MB | NoFile, error toast | [UNDERSTANDING] |
 | Checking | answer | every row valid | Accepted | [UNDERSTANDING] |
 | Checking | answer | row errors | Rejected, error toast naming the rows | [REQUIREMENT #33] "errors shown as toastify warnings" (acceptance criterion) |

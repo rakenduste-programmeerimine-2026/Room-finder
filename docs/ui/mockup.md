@@ -2,7 +2,7 @@
 
 Status: proposal for issue #17, waiting for team approval. Nothing in `src/app/` is built from it until the team approves it.
 
-Figma file: [Ruumileidja – mockup ja kasutajateekond](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6). Desktop frames, 1440 px wide, Estonian UI, font Geist (the app font in `src/app/layout.tsx`). Colours are Figma variables that map to Tailwind tokens.
+Figma file: [Ruumileidja – mockup ja kasutajateekond](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6). Desktop frames, 1440 px wide, Estonian UI. Visual style: [IBM Carbon](https://carbondesignsystem.com), Gray 10 theme, font IBM Plex Sans, after the team review (#17, Tormi's comment #4). Colours are Figma variables that map to Tailwind tokens.
 
 The user journey that connects the screens is in [`docs/automata/search-journey.md`](../automata/search-journey.md), and its user stories are in [`docs/user-stories.md`](../user-stories.md). "Data model" below means `docs/data-model.md` (merged with PR #35).
 
@@ -17,7 +17,8 @@ The user journey that connects the screens is in [`docs/automata/search-journey.
 | [05](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6?node-id=5-660) | Curricula and courses: ASIO-like list by degree level, ranked group, course choice, save under a new name | 1.3 |
 | [06](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6?node-id=5-927) | Loading screen while the backend works | 0 |
 | [07](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6?node-id=5-964) | Result: best time and room, groups it does not suit, booking hint | 3 |
-| [08](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6?node-id=5-1080) | States: event types by popularity with "add new type", toasts, missing required inputs, no result | 0, 1.1, 3 |
+| [08](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6?node-id=5-1080) | States: event types by popularity with "add new type", toasts, missing required inputs, no result, open advanced settings (weights) | 0, 1.1, 3 |
+| 04b (last frame) | A CSV file dragged anywhere on the page: drop zone over the whole page, opens the CSV tab | 1.4 |
 
 All room codes, course codes and counts in the frames are illustrative, not ASIO data.
 
@@ -29,7 +30,9 @@ All of these are unconfirmed decisions by the frontend role (listed in #17).
 - **Saved groups first.** Each section starts with a dropdown of saved groups; "Muuda gruppi" and "+ Uus grupp" open the editor.
 - **Times in Europe/Tallinn, sent in UTC.** Every time on screen is local time; the UI converts at the boundary and says so next to the inputs (team rule "Kasutame ainult UTC aega!!!", #17).
 - **Warnings and errors are toasts** (react-toastify, team rule point 0). The next-semester warning is also kept as a banner in the time section, so it stays visible after the toast closes.
-- **Complexity weights belong to the search**, not to a room group, as in the data model (`searches.complexity_weights`).
+- **Complexity weights belong to the search**, not to a room group, as in the data model (`searches.complexity_weights`). They are hidden in a collapsed "Täpsemad seaded" section (Tormi's comment #1).
+- **Candidate times are ranked.** The section is called "Kandidaatajad"; days, and ranges within a day, carry a rank and can be moved. The order is the preference (Tormi's comment #2, decision in #17).
+- **A CSV file can be dropped anywhere.** The page shows a drop zone and switches to the CSV tab (Tormi's comment #3).
 
 ## Questions for the other roles
 
@@ -52,4 +55,4 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 
 - Mobile layout: the main use is a laptop during a meeting. Working assumption: below 1024 px the columns stack.
 - A list of earlier searches: not in the task; the data model keeps searches, so it can be added later.
-- Prototype links between frames and a Figma journey page: the Figma Starter plan's tool-call limit was reached; the journey is documented in Markdown instead.
+- Prototype links between frames and a Figma journey page: the journey is documented in Markdown instead.
