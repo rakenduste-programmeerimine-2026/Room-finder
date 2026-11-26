@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   formatLocalDate,
+  formatTallinnDate,
   formatTallinnTime,
   parseLocalDate,
   parseLocalTime,
@@ -177,6 +178,11 @@ describe("formatting for display", () => {
     expect(formatTallinnTime("2026-10-25T00:30:00Z")).toBe("03:30");
     expect(formatTallinnTime("2026-10-25T01:30:00Z")).toBe("03:30");
     expect(formatTallinnTime("2026-10-25T02:00:00Z")).toBe("04:00");
+  });
+
+  it("names the Tallinn date of a UTC instant, also when it is still the previous day in UTC", () => {
+    expect(formatTallinnDate("2027-01-31T22:00:00Z")).toBe("1. veebruar 2027");
+    expect(formatTallinnDate("2026-07-15T21:30:00Z")).toBe("16. juuli 2026");
   });
 
   it("refuses a date that does not exist", () => {

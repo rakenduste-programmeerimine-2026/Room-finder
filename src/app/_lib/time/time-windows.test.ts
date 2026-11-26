@@ -4,6 +4,7 @@ import {
   datesInNextSemester,
   MAX_DAYS,
   MAX_RANGES_PER_DAY,
+  readEnd,
   type DraftDay,
 } from "./time-windows";
 
@@ -172,6 +173,17 @@ describe("buildTimeWindows", () => {
       const big = Array.from({ length: 20 }, (_, i) => fiveMinuteRanges(dateAfter("2027-01-01", i), 200));
       expect(issuesOf(big, 5)).toEqual([{ code: "too_large" }]);
     });
+  });
+});
+
+describe("readEnd", () => {
+  it.each([
+    ["23:00", "00:00", "24:00"],
+    ["00:01", "00:00", "24:00"],
+    ["00:00", "00:00", "00:00"], // stays invalid
+    ["10:00", "12:00", "12:00"],
+  ])("%s–%s ends at %s", (start, end, expected) => {
+    expect(readEnd(start, end)).toBe(expected);
   });
 });
 
