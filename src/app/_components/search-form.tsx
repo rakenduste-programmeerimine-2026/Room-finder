@@ -15,7 +15,7 @@ export function SearchForm() {
     <>
       <section aria-labelledby="uritus" className={card}>
         <h2 id="uritus" className="text-xl font-normal">Üritus</h2>
-        <EventFields value={event} onChange={setEvent} />
+        <EventFields value={event} onChange={setEvent} eventTypes={[]} />
       </section>
 
       <section aria-labelledby="kandidaatajad" className={card}>

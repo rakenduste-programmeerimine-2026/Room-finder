@@ -8,7 +8,8 @@ import {
   type EventDraft,
 } from "./event";
 
-const read = (change: Partial<EventDraft>) => readEvent({ ...EMPTY_EVENT, ...change });
+const VALID: EventDraft = { ...EMPTY_EVENT, eventType: "koosolek" };
+const read = (change: Partial<EventDraft>) => readEvent({ ...VALID, ...change });
 
 describe("isEventDuration", () => {
   it.each([5, 6, 90, 719, 720])("accepts %i minutes", (minutes) => {
@@ -35,8 +36,35 @@ describe("DURATION_CHOICES", () => {
 });
 
 describe("readEvent", () => {
-  it("reads the empty form as an unnamed 1 h 30 min event without an attendee count", () => {
-    expect(readEvent(EMPTY_EVENT)).toEqual({ ok: true, event: { name: null, durationMinutes: 90, attendees: null } });
+  it("asks for an event type on the empty form", () => {
+    expect(readEvent(EMPTY_EVENT)).toEqual({ ok: false, issues: ["missing_event_type"] });
+  });
+
+  it("reads a form with only the type as an unnamed 1 h 30 min event without an attendee count", () => {
+    expect(readEvent(VALID)).toEqual({
+      ok: true,
+      event: { name: null, eventType: "koosolek", durationMinutes: 90, attendees: null },
+    });
+  });
+
+  describe("event type", () => {
+    it.each<[string, string]>([
+      ["a", "a"],
+      ["  Koosolek ", "Koosolek"],
+      ["x".repeat(60), "x".repeat(60)],
+      ["😀".repeat(60), "😀".repeat(60)],
+    ])("reads %j as %j", (eventType, expected) => {
+      const result = read({ eventType });
+      expect(result.ok && result.event.eventType).toBe(expected);
+    });
+
+    it.each(["", "   "])("asks for a type when it is %j", (eventType) => {
+      expect(read({ eventType })).toEqual({ ok: false, issues: ["missing_event_type"] });
+    });
+
+    it.each(["x".repeat(61), "😀".repeat(61)])("rejects 61 characters", (eventType) => {
+      expect(read({ eventType })).toEqual({ ok: false, issues: ["event_type_too_long"] });
+    });
   });
 
   describe("name", () => {
@@ -88,9 +116,9 @@ describe("readEvent", () => {
   });
 
   it("lists every problem at once", () => {
-    expect(read({ name: "a".repeat(101), durationMinutes: 4, attendees: "0" })).toEqual({
+    expect(read({ name: "a".repeat(101), eventType: "x".repeat(61), durationMinutes: 4, attendees: "0" })).toEqual({
       ok: false,
-      issues: ["name_too_long", "invalid_duration", "invalid_attendees"],
+      issues: ["name_too_long", "event_type_too_long", "invalid_duration", "invalid_attendees"],
     });
   });
 });
