@@ -1,3 +1,6 @@
+/** A count with the Estonian singular after 1: count(1, "ruum", "ruumi") → "1 ruum", count(2, …) → "2 ruumi". */
+export const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
 /** A duration for display: 90 → "1 h 30 min", 60 → "1 h", 45 → "45 min". */
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
