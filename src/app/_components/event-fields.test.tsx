@@ -9,7 +9,7 @@ function Harness() {
   const [value, setValue] = useState<EventDraft>(EMPTY_EVENT);
   return (
     <>
-      <EventFields value={value} onChange={setValue} />
+      <EventFields value={value} onChange={setValue} eventTypes={["koosolek", "seminar"]} />
       <output data-testid="value">{JSON.stringify(value)}</output>
     </>
   );
@@ -69,11 +69,32 @@ describe("EventFields", () => {
     expect(attendees()).toHaveAccessibleDescription(/^Sisesta täisarv 1 kuni 10\s000\.$/);
   });
 
+  it("asks for an event type without marking the empty field as an error", () => {
+    renderFields();
+    const type = screen.getByLabelText("Ürituse tüüp");
+
+    expect(type).toHaveAttribute("aria-required", "true");
+    expect(type).toHaveAttribute("aria-invalid", "false");
+    expect(type).toHaveAccessibleDescription(/^Vali soovitustest, populaarsemad eespool, või kirjuta uus tüüp\./);
+  });
+
+  it("accepts a new 60-character event type and marks a 61-character one", () => {
+    renderFields();
+    const type = screen.getByLabelText("Ürituse tüüp");
+    fireEvent.change(type, { target: { value: "x".repeat(60) } });
+    expect(type).toHaveAttribute("aria-invalid", "false");
+
+    fireEvent.change(type, { target: { value: "x".repeat(61) } });
+    expect(type).toHaveAttribute("aria-invalid", "true");
+    expect(type).toHaveAccessibleDescription("Tüüp võib olla kuni 60 märki.");
+  });
+
   it("keeps the text as typed", async () => {
     const { user, value } = renderFields();
     await user.type(name(), " Koosolek ");
+    await user.type(screen.getByLabelText("Ürituse tüüp"), "Mälumäng");
     await user.type(attendees(), "12");
 
-    expect(value()).toEqual({ name: " Koosolek ", durationMinutes: 90, attendees: "12" });
+    expect(value()).toEqual({ name: " Koosolek ", eventType: "Mälumäng", durationMinutes: 90, attendees: "12" });
   });
 });

@@ -30,20 +30,22 @@ const TIME_WINDOWS = [{
 async function insert(event: EventDetails): Promise<void> {
   await db.query(
     `insert into public.searches (owner_id, name, event_type, duration_minutes, attendees, room_items, time_windows)
-     values ($1, $2, 'koosolek', $3, $4, '[{"room_code": "A-543"}]'::jsonb, $5::jsonb)`,
-    [USER_A, event.name, event.durationMinutes, event.attendees, JSON.stringify(TIME_WINDOWS)],
+     values ($1, $2, $3, $4, $5, '[{"room_code": "A-543"}]'::jsonb, $6::jsonb)`,
+    [USER_A, event.name, event.eventType, event.durationMinutes, event.attendees, JSON.stringify(TIME_WINDOWS)],
   );
 }
 
 function accepted(change: Partial<EventDraft>): EventDetails {
-  const result = readEvent({ ...EMPTY_EVENT, ...change });
+  const result = readEvent({ ...EMPTY_EVENT, eventType: "koosolek", ...change });
   if (!result.ok) throw new Error(result.issues.join());
   return result.event;
 }
 
 describe("event fields read by the UI", () => {
   it.each<[string, Partial<EventDraft>]>([
-    ["an empty form", {}],
+    ["only the event type", {}],
+    ["a trimmed event type", { eventType: " Mälumäng " }],
+    ["a 60-character event type", { eventType: "x".repeat(60) }],
     ["a trimmed name", { name: "  DigiTechi ÕN koosolek\t" }],
     ["a 100-character name", { name: "a".repeat(100) }],
     ["a 100-character emoji name", { name: "😀".repeat(100) }],

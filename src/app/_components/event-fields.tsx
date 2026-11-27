@@ -2,6 +2,7 @@ import { useId } from "react";
 import {
   DURATION_CHOICES,
   MAX_ATTENDEES,
+  MAX_EVENT_TYPE_LENGTH,
   MAX_NAME_LENGTH,
   MAX_UI_DURATION,
   readEvent,
@@ -10,26 +11,26 @@ import {
 } from "@/app/_lib/event";
 import { formatDuration } from "@/app/_lib/format";
 import { MIN_DURATION } from "@/app/_lib/time/time-windows";
-import { field } from "./field";
-import { ChevronDown } from "./icons";
+import { Select } from "./select";
+import { error, field, helper, label } from "./styles";
 
 export type EventFieldsProps = {
   value: EventDraft;
   onChange: (next: EventDraft) => void;
+  /** Known event types, most used first. */
+  eventTypes: string[];
 };
 
 const MESSAGES: Record<EventIssue, string> = {
   name_too_long: `Nimi võib olla kuni ${MAX_NAME_LENGTH} märki.`,
+  missing_event_type: "Vali soovitustest, populaarsemad eespool, või kirjuta uus tüüp.",
+  event_type_too_long: `Tüüp võib olla kuni ${MAX_EVENT_TYPE_LENGTH} märki.`,
   invalid_duration: `Vali kestus ${formatDuration(MIN_DURATION)} kuni ${formatDuration(MAX_UI_DURATION)}.`,
   invalid_attendees: `Sisesta täisarv 1 kuni ${MAX_ATTENDEES.toLocaleString("et")}.`,
 };
 
-const label = "text-xs text-ink-muted";
-const helper = "text-xs text-helper";
-const error = "text-xs text-error-ink";
-
-/** Point 1: the event's name, duration and number of attendees (#37). The event type comes with #25. */
-export function EventFields({ value, onChange }: EventFieldsProps) {
+/** Point 1: the event's name, type, duration and number of attendees (#37, #25). */
+export function EventFields({ value, onChange, eventTypes }: EventFieldsProps) {
   const id = useId();
   const read = readEvent(value);
   const issue = (code: EventIssue) => !read.ok && read.issues.includes(code);
@@ -45,19 +46,30 @@ export function EventFields({ value, onChange }: EventFieldsProps) {
         <p id={`${id}-name-message`} className={error}>{issue("name_too_long") ? MESSAGES.name_too_long : ""}</p>
       </div>
 
-      {/* The event type (#25) takes the free cell next to the name. */}
-      <div className="flex flex-col gap-2 lg:col-start-1">
+      <div className="flex flex-col gap-2">
+        <label htmlFor={`${id}-type`} className={label}>Ürituse tüüp</label>
+        {/* A free-text field with the browser's suggestions: typing a new type adds it (#25). */}
+        <input id={`${id}-type`} type="text" list={`${id}-types`} autoComplete="off" value={value.eventType}
+          className={field} aria-required="true" aria-invalid={issue("event_type_too_long")}
+          aria-describedby={`${id}-type-message`} onChange={(e) => set({ eventType: e.target.value })} />
+        <datalist id={`${id}-types`}>
+          {eventTypes.map((type) => <option key={type} value={type} />)}
+        </datalist>
+        <p id={`${id}-type-message`} className={issue("event_type_too_long") ? error : helper}>
+          {issue("event_type_too_long")
+            ? MESSAGES.event_type_too_long
+            : `${MESSAGES.missing_event_type} Uus tüüp on teistele nähtav alles siis, kui seda on kasutanud vähemalt 2 kasutajat.`}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
         <label htmlFor={`${id}-duration`} className={label}>Kestus</label>
-        <span className="relative flex">
-          <select id={`${id}-duration`} value={value.durationMinutes} className={`${field} w-full appearance-none pr-10`}
-            aria-invalid={issue("invalid_duration")} aria-describedby={`${id}-duration-message`}
-            onChange={(e) => set({ durationMinutes: Number(e.target.value) })}>
-            {DURATION_CHOICES.map((minutes) => (
-              <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute top-3 right-3 text-ink-muted"><ChevronDown /></span>
-        </span>
+        <Select id={`${id}-duration`} value={value.durationMinutes} aria-invalid={issue("invalid_duration")}
+          aria-describedby={`${id}-duration-message`} onChange={(e) => set({ durationMinutes: Number(e.target.value) })}>
+          {DURATION_CHOICES.map((minutes) => (
+            <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>
+          ))}
+        </Select>
         <p id={`${id}-duration-message`} className={issue("invalid_duration") ? error : helper}>
           {issue("invalid_duration") ? MESSAGES.invalid_duration : "Iga kandidaatvahemik peab mahutama terve ürituse."}
         </p>

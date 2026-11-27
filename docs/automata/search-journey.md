@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
 Status: explicit (design; being built)
-Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37); time windows: `src/app/_components/time-window-tool.tsx` (#26); both in `src/app/_components/search-form.tsx`. The other states come with #25, #27, #32 and #33
+Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor; all files in `src/app/_components/`. The other states come with #27, #32 and #33
 Decision: explicit by design
 Analysis: none
 
@@ -124,7 +124,7 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 - Waiting, Submitting or Result + page reload or closed tab: can the UI resume by search id, for example `/otsing/<id>`?
 - Submitting + the button pressed twice: the UI sends one search, but does the backend need an idempotency key?
 - Any state + anonymous session lost (new browser, cleared site data): saved groups are not visible any more. Is a warning needed?
-- An editor + leaving with unsaved changes (header link, browser back): ask, or discard?
+- An editor + leaving with unsaved changes (header link, browser back): ask, or discard? The room group editor is a view inside the page, not its own address, so browser back leaves the app and loses the form (#25 Unconfirmed decisions).
 - Composing + the same group edited in two tabs: which save wins?
 - Accepted + manual times with "Kasuta koos käsitsi sisestatud aegadega" off: the CSV replaces them; is that clear enough to the user?
 - Accepted + manual times: does the UI show the union of the ranges (data model 5.4 says the solver takes the union)?

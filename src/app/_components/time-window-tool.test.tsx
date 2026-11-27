@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TimeWindows } from "@/app/_lib/time/time-windows";
 import { BackendContext } from "@/app/_ports/backend";
 import type { Backend } from "@/app/_ports/ports";
+import { createStubBackend } from "@/app/_ports/stubs";
 import { TimeWindowTool } from "./time-window-tool";
 
 vi.mock("react-toastify", () => ({ toast: { warning: vi.fn(), error: vi.fn() } }));
@@ -13,7 +14,7 @@ const SPRING_2027 = "2027-01-31T22:00:00Z"; // 1 February 2027, 00:00 in Tallinn
 
 async function renderTool({ duration = 60, nextStart = () => Promise.resolve(SPRING_2027) } = {}) {
   const onChange = vi.fn<(windows: TimeWindows | null) => void>();
-  const backend: Backend = { semester: { nextStart } };
+  const backend: Backend = { ...createStubBackend(), semester: { nextStart } };
   render(
     <BackendContext value={backend}>
       <TimeWindowTool durationMinutes={duration} onChange={onChange} />
