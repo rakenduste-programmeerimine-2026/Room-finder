@@ -10,8 +10,8 @@ import {
 } from "@/app/_lib/event";
 import { formatDuration } from "@/app/_lib/format";
 import { MIN_DURATION } from "@/app/_lib/time/time-windows";
-import { field } from "./field";
-import { ChevronDown } from "./icons";
+import { Select } from "./select";
+import { error, field, helper, label } from "./styles";
 
 export type EventFieldsProps = {
   value: EventDraft;
@@ -24,9 +24,6 @@ const MESSAGES: Record<EventIssue, string> = {
   invalid_attendees: `Sisesta täisarv 1 kuni ${MAX_ATTENDEES.toLocaleString("et")}.`,
 };
 
-const label = "text-xs text-ink-muted";
-const helper = "text-xs text-helper";
-const error = "text-xs text-error-ink";
 
 /** Point 1: the event's name, duration and number of attendees (#37). The event type comes with #25. */
 export function EventFields({ value, onChange }: EventFieldsProps) {
@@ -48,16 +45,12 @@ export function EventFields({ value, onChange }: EventFieldsProps) {
       {/* The event type (#25) takes the free cell next to the name. */}
       <div className="flex flex-col gap-2 lg:col-start-1">
         <label htmlFor={`${id}-duration`} className={label}>Kestus</label>
-        <span className="relative flex">
-          <select id={`${id}-duration`} value={value.durationMinutes} className={`${field} w-full appearance-none pr-10`}
-            aria-invalid={issue("invalid_duration")} aria-describedby={`${id}-duration-message`}
-            onChange={(e) => set({ durationMinutes: Number(e.target.value) })}>
-            {DURATION_CHOICES.map((minutes) => (
-              <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute top-3 right-3 text-ink-muted"><ChevronDown /></span>
-        </span>
+        <Select id={`${id}-duration`} value={value.durationMinutes} aria-invalid={issue("invalid_duration")}
+          aria-describedby={`${id}-duration-message`} onChange={(e) => set({ durationMinutes: Number(e.target.value) })}>
+          {DURATION_CHOICES.map((minutes) => (
+            <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>
+          ))}
+        </Select>
         <p id={`${id}-duration-message`} className={issue("invalid_duration") ? error : helper}>
           {issue("invalid_duration") ? MESSAGES.invalid_duration : "Iga kandidaatvahemik peab mahutama terve ürituse."}
         </p>

@@ -23,7 +23,7 @@ import {
   type TimeWindows,
 } from "@/app/_lib/time/time-windows";
 import { useBackend } from "@/app/_ports/backend";
-import { field } from "./field";
+import { field, ghostButton, iconButton } from "./styles";
 import { ChevronDown, ChevronUp, Clock, Close, Warning } from "./icons";
 
 type RangeRow = { id: number; start: LocalTime; end: LocalTime };
@@ -37,10 +37,6 @@ export type TimeWindowToolProps = {
 };
 
 const DEFAULT_RANGE = { start: "10:00", end: "12:00" };
-
-const iconButton =
-  "grid size-8 place-items-center text-ink-muted hover:bg-subtle disabled:text-disabled disabled:hover:bg-transparent";
-const ghostButton = "h-8 px-3 text-sm text-interactive hover:bg-subtle disabled:text-disabled";
 
 const toDraft = (days: DayRow[]): DraftDay[] =>
   days.map((day) => ({
