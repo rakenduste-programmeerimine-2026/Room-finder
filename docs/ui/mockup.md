@@ -50,6 +50,7 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 | UI-8 | Is there a call that checks a CSV and returns row errors and the parsed time windows before the search is created? `searches.time_windows` is required on insert. | Yes, a separate check call | Backend (#31) |
 | UI-9 | #23 says 1.2 is always required, #33 says the CSV may replace 1.2. Is a search with only a CSV valid? | Yes, an accepted CSV counts as 1.2 (data model section 2) | Backend (#23, #31) |
 | UI-10 | Is a time range shorter than the event duration invalid in the UI, or left to the matching? | Invalid in the UI | Backend (#20, #22) |
+| UI-11 | Does the matching leave out rooms whose capacity is below the attendee count (data model Q8)? Frame 01 says so under "Osalejaid". | Yes, `rooms.capacity` ≥ `searches.attendees` when the count is given | Backend (#22) |
 
 ## Not in the mockup
 
