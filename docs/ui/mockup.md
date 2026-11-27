@@ -57,3 +57,8 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 - Mobile layout: the main use is a laptop during a meeting. Working assumption: below 1024 px the columns stack.
 - A list of earlier searches: not in the task; the data model keeps searches, so it can be added later.
 - Prototype links between frames and a Figma journey page: the journey is documented in Markdown instead.
+
+## Built differently from the mockup
+
+- Event type (frame 08 A): a text field with the browser's suggestions in popularity order instead of a custom dropdown with counts, an "ainult sina" badge and a "Lisa uus tüüp" row. Decision in #25: "Brauseri soovitusväli (Recommended)". The data model function returns no owner, so "ainult sina" could not be shown anyway.
+- Room codes: the app shows the `DEMO-` rooms of the seed data until the real catalogue (#40) exists (UI-7).

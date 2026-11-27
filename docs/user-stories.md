@@ -52,8 +52,8 @@ Source: [REQUIREMENT #25] "võimalus eksisteeriva üritustüübiga siduda näite
 As an organiser, I want event types ordered by popularity and the option to add a new one, so that the common choice is on top.
 
 Acceptance criteria:
-- Given event types with use counts, when I open the dropdown, then they are ordered by count, highest first.
-- Given text that matches no type, when I choose "Lisa uus tüüp", then it is used for this search, and offered to me next time after a search with it has been created.
+- Given event types with use counts, when I open the suggestions, then they are ordered by count, highest first.
+- Given text that matches no type, when I type it, then it is used for this search, and offered to me next time after a search with it has been created. The field is a text field with the browser's suggestions, not the dropdown of frame 08: [REQUIREMENT #25] "Brauseri soovitusväli (Recommended)".
 - Given a new type of 1 or 60 characters after trimming, then it is accepted; given 0 or 61, then it is rejected.
 
 ### US-005: Weigh room complexity classes
