@@ -22,3 +22,4 @@ Every fixed bug, newest first. Follow the `fix-bug` skill to add one. Dates are 
 
 | Date | Type | Description | Fix | Issue | State machine |
 |---|---|---|---|---|---|
+| 2026-11-27 | integration | Wrapping the new search form in React's `<Activity>`, to keep its inputs while the room group editor is open, froze the page in Chrome right after loading; found in the browser check before the first commit, while the jsdom tests passed. | The form is hidden with the `hidden` attribute instead, which also keeps every input; the comment in `search-form.tsx` warns against `<Activity>`. Isolated by removing parts of the page one at a time in the dev server; the cause inside React or Next.js was not identified. No automated test: jsdom does not reproduce it. | #25 | – |
