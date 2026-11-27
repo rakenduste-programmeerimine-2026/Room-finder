@@ -1,6 +1,6 @@
 # Mockup
 
-Status: proposal for issue #17, waiting for team approval. Nothing in `src/app/` is built from it until the team approves it.
+Status: approved by the team (PR #36, merged 2026-11-26). The UI is built from it issue by issue, starting with #26.
 
 Figma file: [Ruumileidja – mockup ja kasutajateekond](https://www.figma.com/design/2SPCOq7PtZUeAJRho51uw6). Desktop frames, 1440 px wide, Estonian UI. Visual style: [IBM Carbon](https://carbondesignsystem.com), Gray 10 theme, font IBM Plex Sans, after the team review (#17, Tormi's comment #4). Colours are Figma variables that map to Tailwind tokens.
 
@@ -29,7 +29,7 @@ All of these are unconfirmed decisions by the frontend role (listed in #17).
 - **One page for all inputs.** The idea description (idea 2, agreed acceptance condition) has the organiser choose options from a dropdown during a meeting, so every input is visible at once. The editors for room and curriculum groups are separate views because they are used before the meeting.
 - **Saved groups first.** Each section starts with a dropdown of saved groups; "Muuda gruppi" and "+ Uus grupp" open the editor.
 - **Times in Europe/Tallinn, sent in UTC.** Every time on screen is local time; the UI converts at the boundary and says so next to the inputs (team rule "Kasutame ainult UTC aega!!!", #17).
-- **Warnings and errors are toasts** (react-toastify, team rule point 0). The next-semester warning is also kept as a banner in the time section, so it stays visible after the toast closes.
+- **Request errors and warnings are toasts** (react-toastify, team rule point 0); field validation is shown inline next to the field. The next-semester warning is also kept as a banner in the time section, so it stays visible after the toast closes.
 - **Complexity weights belong to the search**, not to a room group, as in the data model (`searches.complexity_weights`). They are hidden in a collapsed "Täpsemad seaded" section (Tormi's comment #1).
 - **Candidate times are ranked.** The section is called "Kandidaatajad"; days, and ranges within a day, carry a rank and can be moved. The order is the preference (Tormi's comment #2, decision in #17).
 - **A CSV file can be dropped anywhere.** The page shows a drop zone and switches to the CSV tab (Tormi's comment #3).
@@ -41,7 +41,7 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 | # | Question | Working assumption | Owner |
 |---|---|---|---|
 | UI-1 | ASIO groups are per study year (`IFIFB-1`, `IFIFB-2`). The data model's curriculum item has no year. Where is the year stored? | `asio_id` holds the ASIO group code, e.g. `IFIFB-1` | Database, backend (#28, #30) |
-| UI-2 | Can the UI know the next-semester start date S before the search runs, to warn while the user picks days? | S is a local date from the backend or a constant, `PLACEHOLDER(#20)` | Backend (#20) |
+| UI-2 | Can the UI know the next-semester start date S before the search runs, to warn while the user picks days? | The backend returns the UTC instant of local midnight on S; until then a constant, `PLACEHOLDER(#20)` | Backend (#20) |
 | UI-3 | Does the search run asynchronously, and how does the UI follow it (polling `searches.status`, Realtime, or one long request)? | Polling every 2 s, giving up after 2 minutes | Backend (#23) |
 | UI-4 | The data model has an optional `course` per unsuitable group (5.5). Will the matching fill it? Frame 07 shows the course name. | `course` per unsuitable group, as in 5.5 | Backend (#22, #23) |
 | UI-5 | CSV times in UTC (data model Q2) are hard to write by hand. Could the CSV use local time? | UTC as in the data model; the help text shows the conversion | Backend (#31) |

@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
-Status: explicit (design, not built yet)
-Code locations: none yet; the UI for #25, #26, #27, #32 and #33 will hold this state
+Status: explicit (design; being built)
+Code locations: Composing, time windows: `src/app/_components/time-window-tool.tsx` (#26); the other states come with #25, #27, #32 and #33
 Decision: explicit by design
 Analysis: none
 
@@ -47,12 +47,14 @@ There is no final state: the user can always start a new search.
 
 ## Transitions
 
-S is the first local (Europe/Tallinn) date of the next semester; its source is UI-2, `PLACEHOLDER(#20)`. A day is in the next semester when its local date is S or later.
+S is the first local (Europe/Tallinn) date of the next semester; the `Semester` port gives the UTC instant of its local midnight (UI-2, `PLACEHOLDER(#20)`). A day is in the next semester when it starts at or after that instant.
 
 | From | Event | Guard | To | Source |
 |---|---|---|---|---|
 | [*] | open the app | anonymous session exists or is created | Composing | [REQUIREMENT #17] "Kontot pole vaja luua nagu eelmises andmebaas töötab samal põhimõttel." [REQUIREMENT CLAUDE.md] "Users are identified by Supabase anonymous sign-in (`ensureAnonymousSession` in `src/lib/supabase/`)." |
 | Composing | edit an input | – | Composing | [UNDERSTANDING] |
+| Composing | enter a time skipped by the spring change (29.03 03:00–03:59) | – | Composing, the range is marked invalid | [REQUIREMENT #26] "Keela + varasem (Recommended)"; a repeated autumn time takes the earlier instant |
+| Composing | add another date in the next semester | the set of affected dates grows | Composing, one more warning toast; the banner stays | [UNDERSTANDING] (#26 Unconfirmed decisions) |
 | Composing | move a day, or a range within its day, up or down | – | Composing, ranks renumbered | [REQUIREMENT #17] "Võiks kirjas olla, et on kandidaat ajad ja neid võiks ka saada järjestada" (Tormi's review) |
 | Composing | add a day | local date ≥ S | Composing, warning toast; banner in the time section | [REQUIREMENT #26] "Juhul kui küsitakse andmeid järgmisel poolaastal toimuvate tundide kohta lisa hoiatus" and acceptance criterion "The next-semester warning is shown with toastify." The banner is [UNDERSTANDING] (#17 Unconfirmed decisions). |
 | Composing | "Muuda gruppi" or "+ Uus grupp" in Ruumid | – | RoomGroupEditor | [UNDERSTANDING] |
@@ -124,8 +126,6 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 - Any state + anonymous session lost (new browser, cleared site data): saved groups are not visible any more. Is a warning needed?
 - An editor + leaving with unsaved changes (header link, browser back): ask, or discard?
 - Composing + the same group edited in two tabs: which save wins?
-- Composing + days in two semesters at once: one warning, or one per day?
-- Composing + a range that does not exist in local time (29 March 2026 03:00–03:59, when clocks jump forward).
 - Accepted + manual times with "Kasuta koos käsitsi sisestatud aegadega" off: the CSV replaces them; is that clear enough to the user?
 - Accepted + manual times: does the UI show the union of the ranges (data model 5.4 says the solver takes the union)?
 - Rejected + valid manual times: the search can run with the manual times only; should the UI ask first?
