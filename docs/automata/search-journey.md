@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
 Status: explicit (design; being built)
-Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26); summary and "Leia aeg ja ruum": `search-summary.tsx` (#27). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor. Submitting, Waiting, Result and NoResult (#27): the states and transitions are `nextRun` in `src/app/_lib/search-run.ts`; `search-journey.tsx` runs them and shows `search-waiting.tsx` and `search-result.tsx`. Curricula in Composing: `curriculum-picker.tsx`; CurriculumGroupEditor: `curriculum-group-editor.tsx` (#32). Components are in `src/app/_components/`. The CSV upload comes with #33
+Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26); summary and "Leia aeg ja ruum": `search-summary.tsx` (#27). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor. Submitting, Waiting, Result and NoResult (#27): the states and transitions are `nextRun` in `src/app/_lib/search-run.ts`; `search-journey.tsx` runs them and shows `search-waiting.tsx` and `search-result.tsx`. Curricula in Composing: `curriculum-picker.tsx`; CurriculumGroupEditor: `curriculum-group-editor.tsx` (#32). Components are in `src/app/_components/`. CSV upload: the states are `CsvState` in `src/app/_lib/csv.ts`, run by `useCsvUpload` and shown by `CsvUpload` and `PageFileDrop` in `csv-upload.tsx` (#33)
 Decision: explicit by design
 Analysis: none
 
@@ -93,6 +93,10 @@ stateDiagram-v2
     [*] --> NoFile
     NoFile --> NoFile: file is not .csv or over 1 MB (error toast)
     NoFile --> Checking: choose or drop a file
+    Checking --> Checking: choose another file (the first answer is ignored)
+    Checking --> NoFile: remove file (the answer is ignored)
+    Accepted --> Accepted: file is not .csv or over 1 MB (error toast)
+    Rejected --> Rejected: file is not .csv or over 1 MB (error toast)
     Checking --> Accepted: server parsed every row
     Checking --> Rejected: server reports row errors (error toast)
     Checking --> NoFile: request fails (error toast)
@@ -102,7 +106,7 @@ stateDiagram-v2
     Rejected --> NoFile: remove file
 ```
 
-The backend parses the file (#31, UI-8); the UI only shows its answer.
+The backend parses the file (#31, UI-8); the UI only shows its answer. A file that is not `.csv` or is over 1 MB (1 048 576 bytes) is never sent and leaves the current state as it is, with an error toast. Files are taken only while the form is shown, not in an editor, the loading screen or a result.
 
 | State | Meaning | Source |
 |---|---|---|
@@ -123,6 +127,11 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 | Accepted | remove file | – | NoFile | [UNDERSTANDING] |
 | Rejected | choose another file | – | Checking | [UNDERSTANDING] |
 | Rejected | remove file | – | NoFile | [UNDERSTANDING] |
+| Checking | choose or drop another file | `.csv`, at most 1 MB | Checking, the first file's answer is ignored | [UNDERSTANDING] (#33) |
+| Checking | remove file | – | NoFile; the answer that comes later is ignored | [UNDERSTANDING] (#33) |
+| Accepted or Rejected | choose or drop a file | not `.csv`, or over 1 MB | unchanged, error toast | [UNDERSTANDING] (#33) |
+
+On Checking → Accepted, "Kasuta koos käsitsi sisestatud aegadega" is turned on if the manual input has no problems at that moment, otherwise off [UNDERSTANDING] (#33). A dropped file is taken only while the form is shown; in an editor, the loading screen and a result it is ignored [REQUIREMENT #33] "Ainult vormi vaates (Recommended)".
 
 ## Unknowns
 
@@ -134,6 +143,6 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 - An editor + leaving with unsaved changes (header link, browser back): ask, or discard? The room group editor is a view inside the page, not its own address, so browser back leaves the app and loses the form (#25 Unconfirmed decisions).
 - Composing + the same group edited in two tabs: which save wins?
 - Accepted + manual times with "Kasuta koos käsitsi sisestatud aegadega" off: the CSV replaces them; is that clear enough to the user?
-- Accepted + manual times: does the UI show the union of the ranges (data model 5.4 says the solver takes the union)?
-- Rejected + valid manual times: the search can run with the manual times only; should the UI ask first?
+- Accepted + manual times: the UI sends the manual periods first and then the file's, and counts both in the summary; it does not merge overlapping ranges (data model 5.4: the solver takes the union) (#33).
+- Rejected + valid manual times: the search runs with the manual times only, and the summary says the file is not used (#33). Is that clear enough to the user?
 - CurriculumGroupEditor + the ASIO catalogue is slow or fails (data model Q6, #21): the editor says the list is empty because it is still loading or could not be loaded, and a failed load is an error toast (#32). Is a retry needed?

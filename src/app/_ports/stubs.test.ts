@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { curriculumOf, withCourses } from "@/app/_lib/curricula";
 import { buildTimeWindows } from "@/app/_lib/time/time-windows";
+import { csvFilesContract } from "./contracts/csv-files.contract";
 import { curriculaContract } from "./contracts/curricula.contract";
 import { curriculumGroupsContract } from "./contracts/curriculum-groups.contract";
 import { eventTypesContract } from "./contracts/event-types.contract";
@@ -17,6 +18,7 @@ eventTypesContract(() => createStubBackend().eventTypes);
 searchesContract(() => createStubBackend().searches, { pause: 0 });
 curriculaContract(() => createStubBackend().curricula);
 curriculumGroupsContract(() => createStubBackend().curriculumGroups);
+csvFilesContract(() => createStubBackend().csvFiles);
 
 describe("stub backend", () => {
   it("hands out copies, so the caller cannot change the store", async () => {
@@ -54,6 +56,7 @@ describe("stub backend", () => {
       timeWindows: built.windows,
       curricula: null,
       curriculumGroupId: null,
+      csvFilename: null,
     });
 
     expect(await searches.status(id)).toEqual({ status: "running" });
@@ -84,6 +87,7 @@ describe("stub backend", () => {
       timeWindows: built.windows,
       curricula: chosen,
       curriculumGroupId: null,
+      csvFilename: null,
     });
     await searches.status(id);
 
@@ -106,5 +110,15 @@ describe("stub backend", () => {
 
     expect(await curriculumGroups.list()).toEqual([]);
     expect((await curriculumGroups.create("Aulad", [curriculumOf((await curricula.list())[0])])).ok).toBe(true);
+  });
+
+  it("makes up a CSV answer without reading the file: row errors for a name with \"viga\", else two days", async () => {
+    const { csvFiles } = createStubBackend();
+    const answer = await csvFiles.check(new File(["anything"], "Ajad.CSV"));
+    if (!answer.ok) throw new Error("expected an accepted file");
+
+    expect(answer.rows).toBe(3);
+    expect(answer.timeWindows.flatMap((p) => p.days)).toHaveLength(2);
+    expect(await csvFiles.check(new File([""], "ajad-VIGA.csv"))).toMatchObject({ ok: false, errors: [{ row: 4 }, { row: 9 }] });
   });
 });

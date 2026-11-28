@@ -140,6 +140,8 @@ export type SearchInput = {
   curricula: Curriculum[] | null;
   /** The saved group they were copied from (`source_curriculum_group_id`). */
   curriculumGroupId: string | null;
+  /** The name of the CSV file whose times are sent, null without one (`csv_filename`). */
+  csvFilename: string | null;
 };
 
 /** The best time and room of a search. */
@@ -168,6 +170,23 @@ export interface Searches {
   status(id: string): Promise<SearchStatus>;
 }
 
+/** A row of a CSV file that cannot be used: its number in the file, 1 being the header, and why. */
+export type CsvRowError = { row: number; message: string };
+
+/** The backend's answer about a CSV file (UI-8): its time windows, or the rows that cannot be used. */
+export type CsvCheck =
+  | { ok: true; rows: number; timeWindows: TimeWindows }
+  | { ok: false; errors: CsvRowError[] };
+
+/** Checking a CSV file of candidate times before the search, for point 1.4 (#33, #31). */
+export interface CsvFiles {
+  /**
+   * Reads the file, whose bytes the backend decodes: its time windows are periods with source
+   * "csv". Rejects if the file could not be checked at all.
+   */
+  check(file: File): Promise<CsvCheck>;
+}
+
 export type Backend = {
   semester: Semester;
   rooms: Rooms;
@@ -176,4 +195,5 @@ export type Backend = {
   searches: Searches;
   curricula: Curricula;
   curriculumGroups: CurriculumGroups;
+  csvFiles: CsvFiles;
 };

@@ -86,7 +86,7 @@ export function SearchJourney() {
   return (
     <>
       <div ref={form} hidden={run.state !== "composing"}>
-        <SearchForm key={formKey} onSubmit={submit} />
+        <SearchForm key={formKey} onSubmit={submit} active={run.state === "composing"} />
       </div>
       {(run.state === "submitting" || run.state === "waiting") && (
         <SearchWaiting step={run.state === "waiting" ? run.status : "submitting"}

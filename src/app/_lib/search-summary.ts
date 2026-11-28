@@ -1,3 +1,4 @@
+import type { CandidateTimes, CsvState } from "./csv";
 import { readAttendees, type EventDraft, type ReadEvent } from "./event";
 import { count, formatDuration } from "./format";
 import type { TimeWindows } from "./time/time-windows";
@@ -10,8 +11,9 @@ export type SummaryInput = {
   /** The name of the chosen room group, null if none. */
   roomGroup: string | null;
   roomCount: number;
-  /** Null while the time input has problems. */
+  /** The candidate times to send; null while they have problems. */
   windows: TimeWindows | null;
+  csv: CsvState;
   /** The name of the chosen curriculum group, null if none. */
   curriculumGroup: string | null;
   curriculumCount: number;
@@ -20,7 +22,7 @@ export type SummaryInput = {
 
 /** The inputs of a search in a few words. */
 export function summarise(input: SummaryInput): SummaryRow[] {
-  const { event, roomGroup, roomCount, windows, curriculumGroup, curriculumCount, weightsChanged } = input;
+  const { event, roomGroup, roomCount, windows, csv, curriculumGroup, curriculumCount, weightsChanged } = input;
   const attendees = readAttendees(event.attendees);
   const days = windows?.flatMap((period) => period.days) ?? [];
   const ranges = days.flatMap((day) => day.ranges).length;
@@ -42,6 +44,18 @@ export function summarise(input: SummaryInput): SummaryRow[] {
         : "puuduvad või vigased",
     },
     {
+      label: "CSV-fail",
+      value: csv.state === "none"
+        ? "puudub"
+        : `${csv.name} · ${
+          csv.state === "checking"
+            ? "kontrollimisel"
+            : csv.state === "accepted"
+              ? count(csv.rows, "rida", "rida")
+              : "vigane, ei kasutata"
+        }`,
+    },
+    {
       label: "Õppekavad",
       value: curriculumCount === 0
         ? "ei arvestata"
@@ -54,11 +68,18 @@ export function summarise(input: SummaryInput): SummaryRow[] {
 /** A required part of the search; `target` is the id of the section heading that holds it. */
 export type Check = { ok: boolean; text: string; target: "uritus" | "ruumid" | "kandidaatajad" };
 
+const TIMES_TEXT: Record<Extract<CandidateTimes, { ok: false }>["issue"], string> = {
+  missing: "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)",
+  checking: "CSV-faili kontrollitakse (1.2)",
+  manual_invalid: "Paranda käsitsi sisestatud ajad või kasuta ainult CSV-faili (1.2)",
+  too_large: "Aegu on liiga palju: vähenda päevi või CSV-faili ridu (1.2)",
+};
+
 /**
- * What "Leia aeg ja ruum" needs (US-010): rooms (1.1), time ranges without
- * problems (1.2) and event details within their limits. In the order of frame 08 C.
+ * What "Leia aeg ja ruum" needs (US-010): rooms (1.1), candidate times without problems, typed
+ * or from a checked CSV file (1.2, 1.4), and event details within their limits. In the order of frame 08 C.
  */
-export function requiredChecks(event: ReadEvent, roomCount: number, windows: TimeWindows | null): Check[] {
+export function requiredChecks(event: ReadEvent, roomCount: number, times: CandidateTimes): Check[] {
   const eventText = event.ok
     ? "Ürituse tüüp ja kestus valitud"
     : event.issues.includes("missing_event_type")
@@ -71,8 +92,8 @@ export function requiredChecks(event: ReadEvent, roomCount: number, windows: Tim
       target: "ruumid",
     },
     {
-      ok: windows !== null,
-      text: windows ? "Vähemalt üks ajavahemik (1.2)" : "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)",
+      ok: times.ok,
+      text: times.ok ? "Vähemalt üks ajavahemik (1.2)" : TIMES_TEXT[times.issue],
       target: "kandidaatajad",
     },
     { ok: event.ok, text: eventText, target: "uritus" },
