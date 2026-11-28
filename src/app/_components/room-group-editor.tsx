@@ -1,12 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { toast } from "react-toastify";
 import { COMPLEXITY_LABELS, COMPLEXITY_ORDER } from "@/app/_lib/complexity";
 import { count } from "@/app/_lib/format";
 import { move } from "@/app/_lib/move";
-import { checkRoomGroup, MAX_GROUP_NAME_LENGTH, MAX_GROUP_ROOMS, type GroupIssue } from "@/app/_lib/room-group";
 import { NO_FILTER, searchRooms, type RoomFilter } from "@/app/_lib/room-search";
+import { checkGroup, MAX_GROUP_ITEMS, MAX_GROUP_NAME_LENGTH, type GroupIssue } from "@/app/_lib/saved-group";
 import { useBackend } from "@/app/_ports/backend";
 import type { Complexity, Room, RoomGroup } from "@/app/_ports/ports";
+import { saveGroup } from "./group-save";
 import { RankedRoomList, RoomTags } from "./room-list";
 import { Select } from "./select";
 import { error, field, ghostButton, helper, label, primaryButton, secondaryButton } from "./styles";
@@ -22,14 +22,12 @@ export type RoomGroupEditorProps = {
   onCancel: () => void;
 };
 
-const nameTaken = (name: string) => `Nimi on juba kasutusel: sul on juba grupp nimega „${name}“. Vali teine nimi.`;
-
 const MESSAGES: Record<GroupIssue, string> = {
   missing_name: "Anna grupile nimi.",
   name_too_long: `Nimi võib olla kuni ${MAX_GROUP_NAME_LENGTH} märki.`,
   name_taken: "Sul on juba sellise nimega ruumigrupp.",
-  no_rooms: "Lisa gruppi vähemalt üks ruum.",
-  too_many_rooms: `Grupis saab olla kuni ${MAX_GROUP_ROOMS} ruumi.`,
+  empty: "Lisa gruppi vähemalt üks ruum.",
+  too_many: `Grupis saab olla kuni ${MAX_GROUP_ITEMS} ruumi.`,
 };
 
 /** Point 1: find rooms by code or name variant, rank them and save the group (frame 02, US-003). */
@@ -49,41 +47,26 @@ export function RoomGroupEditor({ catalog, group, groups, attendees, onSaved, on
   const byCode = useMemo(() => new Map(catalog.map((room) => [room.code, room])), [catalog]);
   const results = useMemo(() => searchRooms(catalog, filter), [catalog, filter]);
   const otherNames = (asNew: boolean) => groups.filter((g) => asNew || g.id !== group?.id).map((g) => g.name);
-  const issues = checkRoomGroup(name, codes, otherNames(group === null)).issues;
+  const issues = checkGroup(name, codes.length, otherNames(group === null)).issues;
   // An empty name or group is only an error once the user tries to save.
-  const shown = issues.filter((i) => attempted || (i !== "missing_name" && i !== "no_rooms"));
-  const nameIssue = shown.find((i) => i !== "no_rooms" && i !== "too_many_rooms");
-  const roomsIssue = shown.find((i) => i === "no_rooms" || i === "too_many_rooms");
-  const full = codes.length >= MAX_GROUP_ROOMS;
+  const shown = issues.filter((i) => attempted || (i !== "missing_name" && i !== "empty"));
+  const nameIssue = shown.find((i) => i !== "empty" && i !== "too_many");
+  const roomsIssue = shown.find((i) => i === "empty" || i === "too_many");
+  const full = codes.length >= MAX_GROUP_ITEMS;
   const capacityInvalid = capacityText.trim() !== "" && !/^\d+$/.test(capacityText.trim());
 
   async function save(asNew: boolean) {
-    const checked = checkRoomGroup(name, codes, otherNames(asNew));
-    if (checked.issues.length) {
-      setAttempted(true);
-      toast.error(
-        checked.issues.join() === "name_taken"
-          ? nameTaken(checked.name)
-          : `Gruppi ei salvestatud: ${checked.issues.map((i) => MESSAGES[i]).join(" ")}`,
-      );
-      return;
-    }
+    setAttempted(true);
     setSaving(true);
-    try {
-      const saved = asNew || !group
-        ? await backend.roomGroups.create(checked.name, codes)
-        : await backend.roomGroups.update(group.id, checked.name, codes);
-      if (!saved.ok) {
-        toast.error(nameTaken(checked.name));
-        return;
-      }
-      toast.success(`Grupp salvestatud: „${saved.group.name}“ on nüüd valikus.`);
-      onSaved(saved.group);
-    } catch {
-      toast.error("Gruppi ei õnnestunud salvestada. Sinu muudatused on alles, proovi uuesti.");
-    } finally {
-      setSaving(false);
-    }
+    const saved = await saveGroup(backend.roomGroups, {
+      id: asNew || !group ? null : group.id,
+      name,
+      items: codes,
+      otherNames: otherNames(asNew),
+      messages: MESSAGES,
+    });
+    setSaving(false);
+    if (saved) onSaved(saved);
   }
 
   return (
@@ -177,7 +160,7 @@ export function RoomGroupEditor({ catalog, group, groups, attendees, onSaved, on
 
           <div className="flex items-baseline justify-between">
             <h3 className="font-semibold">Eelisjärjestus</h3>
-            <span className="text-xs text-ink-muted">{count(codes.length, "ruum", "ruumi")} · max {MAX_GROUP_ROOMS}</span>
+            <span className="text-xs text-ink-muted">{count(codes.length, "ruum", "ruumi")} · max {MAX_GROUP_ITEMS}</span>
           </div>
           <p className={roomsIssue ? error : helper}>
             {roomsIssue ? MESSAGES[roomsIssue] : "Lohista ridu või kasuta nooli. 1. ruum on kõige eelistatum."}

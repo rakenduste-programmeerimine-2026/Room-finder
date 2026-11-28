@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
 Status: explicit (design; being built)
-Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26); summary and "Leia aeg ja ruum": `search-summary.tsx` (#27). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor. Submitting, Waiting, Result and NoResult (#27): the states and transitions are `nextRun` in `src/app/_lib/search-run.ts`; `search-journey.tsx` runs them and shows `search-waiting.tsx` and `search-result.tsx`. Components are in `src/app/_components/`. CurriculumGroupEditor and the CSV upload come with #32 and #33
+Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26); summary and "Leia aeg ja ruum": `search-summary.tsx` (#27). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor. Submitting, Waiting, Result and NoResult (#27): the states and transitions are `nextRun` in `src/app/_lib/search-run.ts`; `search-journey.tsx` runs them and shows `search-waiting.tsx` and `search-result.tsx`. Curricula in Composing: `curriculum-picker.tsx`; CurriculumGroupEditor: `curriculum-group-editor.tsx` (#32). Components are in `src/app/_components/`. The CSV upload comes with #33
 Decision: explicit by design
 Analysis: none
 
@@ -17,7 +17,7 @@ stateDiagram-v2
     RoomGroupEditor --> Composing: save, save as new name, cancel
     RoomGroupEditor --> RoomGroupEditor: save fails
     Composing --> CurriculumGroupEditor: edit or create curriculum group
-    CurriculumGroupEditor --> Composing: save as new name, overwrite, cancel
+    CurriculumGroupEditor --> Composing: save, save as new name, overwrite, cancel
     CurriculumGroupEditor --> CurriculumGroupEditor: save fails
     Composing --> Submitting: find time and room [required inputs valid]
     Submitting --> Submitting: button pressed again
@@ -64,7 +64,7 @@ S is the first local (Europe/Tallinn) date of the next semester; the `Semester` 
 | RoomGroupEditor | save | name empty, only spaces, over 100 characters or taken; 0 or over 200 rooms; or the request fails | RoomGroupEditor, error toast, changes kept | [UNDERSTANDING] |
 | RoomGroupEditor | cancel | – | Composing, saved group unchanged | [UNDERSTANDING] |
 | Composing | "Muuda gruppi" or "+ Uus grupp" in Õppekavad | – | CurriculumGroupEditor | [UNDERSTANDING] |
-| CurriculumGroupEditor | save under a new name | name rules as for room groups; 1–200 curricula | Composing, success toast, both groups exist | Saving: [REQUIREMENT #32] "uue nimega salvestada". Limits: [UNDERSTANDING] (data model 4.2). |
+| CurriculumGroupEditor | save a new group, or save under a new name | name rules as for room groups; 1–200 curricula | Composing, success toast, the new group chosen; a changed group's source stays | Saving: [REQUIREMENT #32] "uue nimega salvestada". Limits: [UNDERSTANDING] (data model 4.2). |
 | CurriculumGroupEditor | overwrite the source group | same as above | Composing, success toast | [UNDERSTANDING] |
 | CurriculumGroupEditor | save or overwrite | name invalid or taken; 0 or over 200 curricula; or the request fails | CurriculumGroupEditor, error toast, changes kept | [UNDERSTANDING] |
 | CurriculumGroupEditor | cancel | – | Composing, saved group unchanged | [UNDERSTANDING] |
@@ -136,4 +136,4 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 - Accepted + manual times with "Kasuta koos käsitsi sisestatud aegadega" off: the CSV replaces them; is that clear enough to the user?
 - Accepted + manual times: does the UI show the union of the ranges (data model 5.4 says the solver takes the union)?
 - Rejected + valid manual times: the search can run with the manual times only; should the UI ask first?
-- CurriculumGroupEditor + the ASIO catalogue is slow or fails (data model Q6, #21): what does the list show?
+- CurriculumGroupEditor + the ASIO catalogue is slow or fails (data model Q6, #21): the editor says the list is empty because it is still loading or could not be loaded, and a failed load is an error toast (#32). Is a retry needed?

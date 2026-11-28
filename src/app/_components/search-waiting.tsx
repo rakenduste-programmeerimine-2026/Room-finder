@@ -7,17 +7,20 @@ import { ghostButton } from "./styles";
 export type WaitingStep = "submitting" | "pending" | "running";
 const STEPS: WaitingStep[] = ["submitting", "pending", "running"];
 
-export type SearchWaitingProps = { step: WaitingStep; roomCount: number; onCancel: () => void };
+export type SearchWaitingProps = { step: WaitingStep; roomCount: number; curriculumCount: number; onCancel: () => void };
 
 /** Frame 06: the loading screen while the search is sent and the backend works (US-011). */
-export function SearchWaiting({ step, roomCount, onCancel }: SearchWaitingProps) {
+export function SearchWaiting({ step, roomCount, curriculumCount, onCancel }: SearchWaitingProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), []);
 
   const labels: Record<WaitingStep, string> = {
     submitting: "Salvestan otsingu",
     pending: "Ootan järjekorras",
-    running: `Kogun ASIOst andmeid (${count(roomCount, "ruum", "ruumi")}) ja arvutan parima aja ja ruumi`,
+    running: `Kogun ASIOst andmeid (${[
+      count(roomCount, "ruum", "ruumi"),
+      curriculumCount ? count(curriculumCount, "õppekava", "õppekava") : "",
+    ].filter(Boolean).join(", ")}) ja arvutan parima aja ja ruumi`,
   };
   const current = STEPS.indexOf(step);
 

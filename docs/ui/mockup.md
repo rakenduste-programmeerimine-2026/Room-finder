@@ -40,7 +40,7 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 
 | # | Question | Working assumption | Owner |
 |---|---|---|---|
-| UI-1 | ASIO groups are per study year (`IFIFB-1`, `IFIFB-2`). The data model's curriculum item has no year. Where is the year stored? | `asio_id` holds the ASIO group code, e.g. `IFIFB-1` | Database, backend (#28, #30) |
+| UI-1 | ASIO groups are per study year (`IFIFB-1`, `IFIFB-2`). The data model's curriculum item has no year. Where is the year stored? | Decided in #32: one item is one ASIO group (a curriculum in one study year); `asio_id` holds its code, e.g. `IFIFB-1`, and the UI requires it | Database, backend (#28, #30) |
 | UI-2 | Can the UI know the next-semester start date S before the search runs, to warn while the user picks days? | The backend returns the UTC instant of local midnight on S; until then a constant, `PLACEHOLDER(#20)` | Backend (#20) |
 | UI-3 | Does the search run asynchronously, and how does the UI follow it (polling `searches.status`, Realtime, or one long request)? | Polling every 2 s, giving up after 2 minutes | Backend (#23) |
 | UI-4 | The data model has an optional `course` per unsuitable group (5.5). Will the matching fill it? Frame 07 shows the course name. | `course` per unsuitable group, as in 5.5 | Backend (#22, #23) |
@@ -62,7 +62,9 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 
 - Event type (frame 08 A): a text field with the browser's suggestions in popularity order instead of a custom dropdown with counts, an "ainult sina" badge and a "Lisa uus tüüp" row. Decision in #25: "Brauseri soovitusväli (Recommended)". The data model function returns no owner, so "ainult sina" could not be shown anyway.
 - Room codes: the app shows the `DEMO-` rooms of the seed data until the real catalogue (#40) exists (UI-7).
-- Summary card (frame 01): no "CSV-fail" and "Õppekavad" rows until #33 and #32 add those inputs. The time check reads "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)" when it is missing, because every range must be valid before the search can be sent (#27).
+- Summary card (frame 01): no "CSV-fail" row until #33 adds the CSV upload. The time check reads "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)" when it is missing, because every range must be valid before the search can be sent (#27).
 - Loading screen (frame 06): the three steps follow what the UI can know: sending the search, `pending` and `running`. `searches.status` cannot tell collecting from computing. Without the sentence "Võid lehe lahti jätta – tulemus salvestatakse ja jääb alles": the UI cannot return to a search yet (journey Unknowns) (#27).
-- Result (frame 07): no "Ava ruumi kalender ASIOs" until the link is known (UI-6). Until #32 the unsuitable groups keep the backend's order instead of the search's curriculum order (US-012), and the curricula the time suits are not listed. Without curricula the card says that no class times were checked (#27).
+- Result (frame 07): no "Ava ruumi kalender ASIOs" until the link is known (UI-6). Without curricula the card says that no class times were checked (#27).
+- Curricula card (frame 01): "Õppekavu ei arvestata" is the first choice of the dropdown instead of the checkbox "Ära arvesta õppekavadega". As in the frame, the order is changed in the editor only (#32).
+- Curriculum group editor (frame 05): no "Lähtegrupp" dropdown, because "Muuda gruppi" opens the group chosen on the main page; one "Grupi nimi" field serves both "Salvesta uue nimega" and "Kirjuta lähtegrupp üle". The tabs are the degree levels in the catalogue, and the place filters list the values of the open tab. Until #30 reads ASIO, the curricula and courses are made-up `Demo` examples (#32).
 - No result (frame 08 D): no "Sobivat aega ei leitud" info toast; the page already says it (#27).

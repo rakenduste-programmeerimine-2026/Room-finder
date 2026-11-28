@@ -1,4 +1,5 @@
 import type { Complexity, Room } from "@/app/_ports/ports";
+import { fold } from "./text";
 
 export type RoomFilter = {
   query: string;
@@ -8,12 +9,6 @@ export type RoomFilter = {
 };
 
 export const NO_FILTER: RoomFilter = { query: "", minCapacity: null, complexity: "all", teachingOnly: false };
-
-/**
- * Text for matching: lower case, without spaces and punctuation, so "a 543", "A-543"
- * and "a543" match. Letters stay as they are: õ, ä, ö and ü are letters of their own in Estonian.
- */
-const fold = (text: string): string => text.toLocaleLowerCase("et").replace(/[^\p{L}\p{N}]/gu, "");
 
 const byCode = new Intl.Collator("et", { numeric: true });
 
