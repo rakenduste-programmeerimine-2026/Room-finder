@@ -139,7 +139,8 @@ Source: [REQUIREMENT #23] "Punktid 1.1 ja 1.2 on alati nõutud, 1.3 ja 1.4 on va
 As an organiser, I want the search button to work only when the required parts are filled, so that I do not wait for a search that cannot succeed.
 
 Acceptance criteria:
-- Given no rooms, when I look at the summary, then the button is disabled and "Vali vähemalt üks ruum (1.1)" is listed.
+- Given no rooms, when I look at the summary, then the button is disabled and "Vali vähemalt üks ruum (1.1)" is listed; when I press that line, then the focus moves to the "Ruumid" section.
+- Given a name over 100 characters or an attendee count outside 1–10000, then the button is disabled and "Paranda ürituse andmeid" is listed.
 - Given a CSV still being checked, then the button is disabled.
 - Given rooms, at least one valid range, an event type and a duration, with or without curricula and CSV, when I press the button, then the loading screen appears.
 - Given I press the button twice quickly, then one search is sent.
@@ -153,7 +154,8 @@ Source: [REQUIREMENT #27] "Igaksjuhuks võiks frontend mingi ooteekraani teha ku
 As an organiser, I want to see that the search is running, so that I know the app has not frozen.
 
 Acceptance criteria:
-- Given a pending or running search, when I wait, then the loading screen shows progress and "Katkesta ootamine".
+- Given a pending or running search, when I wait, then the loading screen shows progress and "Katkesta ootamine": "Salvestan otsingu" while the search is sent, "Ootan järjekorras" while it is `pending`, "Kogun ASIOst andmeid … ja arvutan parima aja ja ruumi" while it is `running`.
+- Given a status check that gets no answer, then the next check follows 2 s later.
 - Given a failed search, when the status arrives, then I return to the form with my inputs and an error toast.
 - Given no answer after 2 minutes, then I return to the form with my inputs and an error toast (UI-3, working assumption).
 - Given I press "Katkesta ootamine", then I return to the form with my inputs.
@@ -166,7 +168,8 @@ Source: [REQUIREMENT #27] "Frontend kuvab backendist saadetud vastuse ja nimekir
 As an organiser, I want the best time and room and the groups it does not suit, so that I can propose it at once.
 
 Acceptance criteria:
-- Given a result of 2026-12-01T12:00:00Z–2026-12-01T13:30:00Z, when it is shown, then it reads "Teisipäev, 1. detsember 2026, 14:00 – 15:30" with the room and its booking method.
+- Given a result of 2026-12-01T12:00:00Z–2026-12-01T13:30:00Z, when it is shown, then it reads "Teisipäev, 1. detsember 2026, 14:00 – 15:30" with "UTC 12:00 – 13:30" in small print, the room and its booking method.
+- Given a result whose `warnings` holds `next_semester`, then a warning toast is shown and the warning stays in the "Hoiatused" box.
 - Given unsuitable groups, when the result is shown, then they are listed in the order of the search's curricula (matched against `searches.curricula`), each with its overlapping class times in local time.
 - Given a result, when I press "Muuda sisendeid", then the form opens with the same inputs; when I press "Uus otsing", then it opens empty.
 

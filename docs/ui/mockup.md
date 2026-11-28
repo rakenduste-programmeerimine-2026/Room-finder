@@ -28,7 +28,7 @@ All of these are unconfirmed decisions by the frontend role (listed in #17).
 
 - **One page for all inputs.** The idea description (idea 2, agreed acceptance condition) has the organiser choose options from a dropdown during a meeting, so every input is visible at once. The editors for room and curriculum groups are separate views because they are used before the meeting.
 - **Saved groups first.** Each section starts with a dropdown of saved groups; "Muuda gruppi" and "+ Uus grupp" open the editor.
-- **Times in Europe/Tallinn, sent in UTC.** Every time on screen is local time; the UI converts at the boundary and says so next to the inputs (team rule "Kasutame ainult UTC aega!!!", #17).
+- **Times in Europe/Tallinn, sent in UTC.** Every time on screen is local time; the UI converts at the boundary and says so next to the inputs (team rule "Kasutame ainult UTC aega!!!", #17). Only the result adds the UTC time in small print, as frame 07 does.
 - **Request errors and warnings are toasts** (react-toastify, team rule point 0); field validation is shown inline next to the field. The next-semester warning is also kept as a banner in the time section, so it stays visible after the toast closes.
 - **Complexity weights belong to the search**, not to a room group, as in the data model (`searches.complexity_weights`). They are hidden in a collapsed "Täpsemad seaded" section (Tormi's comment #1).
 - **Candidate times are ranked.** The section is called "Kandidaatajad"; days, and ranges within a day, carry a rank and can be moved. The order is the preference (Tormi's comment #2, decision in #17).
@@ -62,3 +62,7 @@ Raised here; to be added to the issues named in the Owner column with the fronte
 
 - Event type (frame 08 A): a text field with the browser's suggestions in popularity order instead of a custom dropdown with counts, an "ainult sina" badge and a "Lisa uus tüüp" row. Decision in #25: "Brauseri soovitusväli (Recommended)". The data model function returns no owner, so "ainult sina" could not be shown anyway.
 - Room codes: the app shows the `DEMO-` rooms of the seed data until the real catalogue (#40) exists (UI-7).
+- Summary card (frame 01): no "CSV-fail" and "Õppekavad" rows until #33 and #32 add those inputs. The time check reads "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)" when it is missing, because every range must be valid before the search can be sent (#27).
+- Loading screen (frame 06): the three steps follow what the UI can know: sending the search, `pending` and `running`. `searches.status` cannot tell collecting from computing. Without the sentence "Võid lehe lahti jätta – tulemus salvestatakse ja jääb alles": the UI cannot return to a search yet (journey Unknowns) (#27).
+- Result (frame 07): no "Ava ruumi kalender ASIOs" until the link is known (UI-6). Until #32 the unsuitable groups keep the backend's order instead of the search's curriculum order (US-012), and the curricula the time suits are not listed. Without curricula the card says that no class times were checked (#27).
+- No result (frame 08 D): no "Sobivat aega ei leitud" info toast; the page already says it (#27).
