@@ -16,7 +16,7 @@ async function renderForm(backend: Backend = createStubBackend()) {
   const onSubmit = vi.fn<(submission: Submission) => void>();
   render(
     <BackendContext value={backend}>
-      <SearchForm onSubmit={onSubmit} />
+      <SearchForm onSubmit={onSubmit} active />
     </BackendContext>,
   );
   await act(async () => {}); // let the backend answer
@@ -195,6 +195,7 @@ describe("SearchForm", () => {
         "Koosolek · 1 h 30 min",
         "2 ruumi · Aulad",
         "1 päev · 1 vahemik",
+        "puudub",
         "ei arvestata",
         "vaikimisi",
       ]);

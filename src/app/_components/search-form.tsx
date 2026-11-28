@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { changedWeights, DEFAULT_WEIGHTS } from "@/app/_lib/complexity";
+import { candidateTimes, csvFileProblem } from "@/app/_lib/csv";
 import { EMPTY_EVENT, readAttendees, readEvent } from "@/app/_lib/event";
 import { requiredChecks, summarise, type SummaryRow } from "@/app/_lib/search-summary";
 import type { TimeWindows } from "@/app/_lib/time/time-windows";
 import { useBackend } from "@/app/_ports/backend";
 import type { AsioGroup, CurriculumGroup, Room, RoomGroup, SearchInput } from "@/app/_ports/ports";
 import { ComplexityWeightsSection } from "./complexity-weights";
+import { CsvUpload, PageFileDrop, useCsvUpload } from "./csv-upload";
 import { CurriculumGroupEditor } from "./curriculum-group-editor";
 import { CurriculumPicker, type CurriculumChoice } from "./curriculum-picker";
 import { EventFields } from "./event-fields";
 import { RoomGroupEditor } from "./room-group-editor";
 import { RoomPicker, type RoomChoice } from "./room-picker";
 import { SearchSummary } from "./search-summary";
+import { tabId, Tabs } from "./tabs";
 import { TimeWindowTool } from "./time-window-tool";
 
 const card = "flex flex-col gap-4 bg-layer p-6";
@@ -31,12 +34,23 @@ type Editing =
 const withSaved = <G extends { id: string }>(list: G[] | null | "failed", group: G): G[] =>
   [...(Array.isArray(list) ? list : []).filter((g) => g.id !== group.id), group];
 
+const TIME_TABS = [
+  { value: "manual", text: "Sisesta käsitsi" },
+  { value: "csv", text: "Laadi CSV-fail" },
+] as const;
+
+export type SearchFormProps = {
+  onSubmit: (submission: Submission) => void;
+  /** False while the journey shows the loading screen or a result, so a dropped file is not taken. */
+  active: boolean;
+};
+
 /**
  * The new search and the group editors. The form holds the inputs that depend on each other
  * (the duration limits the time ranges, the attendee count marks small rooms). While an editor
  * is open the form is only hidden, so every input stays (search journey, Composing).
  */
-export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) => void }) {
+export function SearchForm({ onSubmit, active }: SearchFormProps) {
   const backend = useBackend();
   const [event, setEvent] = useState(EMPTY_EVENT);
   const [catalog, setCatalog] = useState<Room[]>([]);
@@ -44,7 +58,8 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
   const [eventTypes, setEventTypes] = useState<string[]>([]);
   const [rooms, setRooms] = useState<RoomChoice | null>(null);
   const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
-  const [windows, setWindows] = useState<TimeWindows | null>(null);
+  const [manual, setManual] = useState<TimeWindows | null>(null);
+  const [timeTab, setTimeTab] = useState<"manual" | "csv">("manual");
   const [asioGroups, setAsioGroups] = useState<AsioGroup[]>([]);
   const [curriculumGroups, setCurriculumGroups] = useState<CurriculumGroup[] | null | "failed">(null);
   const [curricula, setCurricula] = useState<CurriculumChoice | null>(null);
@@ -52,6 +67,20 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
   const roomsHeading = useRef<HTMLHeadingElement>(null);
   const curriculaHeading = useRef<HTMLHeadingElement>(null);
   const returning = useRef<Editing["kind"] | null>(null);
+  const timesId = useId();
+  const manualNow = useRef(manual);
+  useEffect(() => {
+    manualNow.current = manual; // read when a CSV file is accepted
+  }, [manual]);
+  const upload = useCsvUpload(useCallback(() => manualNow.current !== null, []));
+  const { choose } = upload;
+  const chooseFile = useCallback(
+    (file: File) => {
+      if (csvFileProblem(file) === null) setTimeTab("csv"); // a refused file gets only a toast
+      choose(file);
+    },
+    [choose],
+  );
 
   useEffect(() => {
     let current = true;
@@ -92,26 +121,28 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
   const chosenCurricula = curricula?.curricula ?? [];
   const nameOf = (list: { id: string; name: string }[] | null | "failed", id?: string) =>
     (Array.isArray(list) && list.find((g) => g.id === id)?.name) || null;
+  const times = candidateTimes(manual, upload.csv, upload.together);
   const weightChanges = changedWeights(weights);
   const summary = summarise({
     event,
     roomGroup: nameOf(groups, rooms?.groupId),
     roomCount: roomCodes.length,
-    windows,
+    windows: times.ok ? times.windows : null,
+    csv: upload.csv,
     curriculumGroup: nameOf(curriculumGroups, curricula?.groupId),
     curriculumCount: chosenCurricula.length,
     weightsChanged: Object.keys(weightChanges).length > 0,
   });
   const submit = () => {
-    if (!read.ok || !windows || roomCodes.length === 0) return;
+    if (!read.ok || !times.ok || roomCodes.length === 0) return;
     onSubmit({
       input: {
         ...read.event,
         roomCodes,
         roomGroupId: rooms?.groupId ?? null,
         complexityWeights: weightChanges,
-        timeWindows: windows,
-        csvFilename: null,
+        timeWindows: times.windows,
+        csvFilename: times.csvFilename,
         curricula: chosenCurricula.length ? chosenCurricula : null,
         curriculumGroupId: chosenCurricula.length ? (curricula?.groupId ?? null) : null,
       },
@@ -142,7 +173,8 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
         <div className="flex flex-col gap-1">
           <h1 tabIndex={-1} className="text-3xl font-normal focus:outline-none">Uus otsing</h1>
           <p className="text-sm text-ink-muted">
-            Üritus, ruumid ja kandidaatajad on kohustuslikud, õppekavad valikulised. Kõik ajad on Tallinna aja järgi.
+            Üritus, ruumid ja kandidaatajad on kohustuslikud, õppekavad valikulised. Ajad on Tallinna aja järgi,
+            CSV-failis UTC-s.
           </p>
         </div>
 
@@ -165,9 +197,19 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
                 <h2 id="kandidaatajad" tabIndex={-1} className={sectionHeading}>Kandidaatajad</h2>
                 <p className="text-sm text-ink-muted">
                   Järjesta eelistuse järgi: üleval olev päev ja iga päeva esimene vahemik on kõige eelistatumad.
+                  CSV-fail asendab käsitsi sisestatud ajad või lisandub neile.
                 </p>
               </div>
-              <TimeWindowTool durationMinutes={event.durationMinutes} onChange={setWindows} />
+              <Tabs label="Kandidaatajate sisestus" idPrefix={timesId} items={TIME_TABS} value={timeTab}
+                onChange={(value) => setTimeTab(value === "csv" ? "csv" : "manual")} panelId={(i) => `${timesId}-panel-${i}`} />
+              <div role="tabpanel" id={`${timesId}-panel-0`} aria-labelledby={tabId(timesId, 0)} hidden={timeTab !== "manual"}>
+                <TimeWindowTool durationMinutes={event.durationMinutes} onChange={setManual} />
+              </div>
+              <div role="tabpanel" id={`${timesId}-panel-1`} aria-labelledby={tabId(timesId, 1)} hidden={timeTab !== "csv"}>
+                <CsvUpload csv={upload.csv} together={upload.together}
+                  manualDays={manual ? manual.reduce((sum, period) => sum + period.days.length, 0) : null}
+                  onFile={chooseFile} onRemove={upload.remove} onTogether={upload.setTogether} />
+              </div>
             </section>
 
             <section aria-labelledby="oppekavad" className={card}>
@@ -185,9 +227,11 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
             </section>
           </div>
 
-          <SearchSummary rows={summary} checks={requiredChecks(read, roomCodes.length, windows)} onSubmit={submit} />
+          <SearchSummary rows={summary} checks={requiredChecks(read, roomCodes.length, times)} onSubmit={submit} />
         </div>
       </div>
+
+      <PageFileDrop active={active && editing === null} onFile={chooseFile} />
 
       {editing?.kind === "rooms" && (
         <RoomGroupEditor catalog={catalog} group={editing.group} groups={Array.isArray(groups) ? groups : []}
