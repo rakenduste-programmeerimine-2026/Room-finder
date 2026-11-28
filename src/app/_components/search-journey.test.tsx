@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "react-toastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { curriculumOf } from "@/app/_lib/curricula";
 import { BackendContext } from "@/app/_ports/backend";
 import type { Backend } from "@/app/_ports/ports";
 import { createStubBackend } from "@/app/_ports/stubs";
@@ -61,6 +62,24 @@ describe("SearchJourney", () => {
     expect(best).toHaveTextContent("Teisipäev, 1. detsember 2026");
     expect(best).toHaveTextContent("10:00 – 11:30");
     expect(best).toHaveTextContent("DEMO-301 · Demo aula · Demo konverentsisaal");
+  });
+
+  it("counts the curricula while waiting and lists them in the result", async () => {
+    const [informaatika, , , , , infoteadus] = await backend.curricula.list();
+    await backend.curriculumGroups.create("Digi", [curriculumOf(informaatika), curriculumOf(infoteadus)]);
+    const user = await renderJourney();
+    await fill(user);
+    await user.selectOptions(screen.getByLabelText("Salvestatud õppekavade grupp"), "Digi · 2 õppekava");
+    await user.click(search());
+    await later(2000);
+    expect(step()).toBe("Kogun ASIOst andmeid (2 ruumi, 2 õppekava) ja arvutan parima aja ja ruumi");
+
+    await later(2000);
+    const rows = within(screen.getByRole("region", { name: "Kellele see aeg ei sobi" })).getAllByRole("listitem");
+    expect(rows.map((li) => li.textContent)).toEqual([
+      "1. Demo informaatika 1. õ.-a. (DEMOINF-1) – sobib",
+      "2. Demo infoteadus 1. õ.-a.DEMOITB-1Kattub: 10:15 – 11:45",
+    ]);
   });
 
   it("goes back to the same inputs with \"Muuda sisendeid\" and to an empty form with \"Uus otsing\"", async () => {
