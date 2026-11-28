@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendContext } from "@/app/_ports/backend";
 import type { Backend } from "@/app/_ports/ports";
 import { createStubBackend } from "@/app/_ports/stubs";
+import { curriculumOf } from "@/app/_lib/curricula";
 import { SearchForm, type Submission } from "./search-form";
 
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
@@ -196,6 +197,63 @@ describe("SearchForm", () => {
         "ei arvestata",
         "vaikimisi",
       ]);
+    });
+  });
+
+  describe("curricula", () => {
+    const curriculaCard = () => within(screen.getByRole("region", { name: "Õppekavad ja ained" }));
+
+    it("are optional, and a first group is built in the editor and then chosen", async () => {
+      const { user } = await renderForm();
+      expect(screen.getByLabelText("Salvestatud õppekavade grupp")).toHaveDisplayValue("Õppekavu ei arvestata");
+      expect(curriculaCard().getByText(/Sul pole veel õppekavade gruppe/)).toBeInTheDocument();
+
+      await user.click(curriculaCard().getByRole("button", { name: "+ Uus grupp" }));
+      expect(screen.getByRole("heading", { level: 1, name: "Uus õppekavade grupp" })).toHaveFocus();
+      await user.type(screen.getByLabelText("Grupi nimi"), "Digi");
+      await user.click(screen.getByRole("checkbox", { name: "Demo infoteadus 1. õ.-a." }));
+      await user.click(screen.getByRole("checkbox", { name: "Demo informaatika 1. õ.-a." }));
+      await user.click(screen.getByRole("button", { name: "Salvesta grupp" }));
+
+      expect(screen.getByRole("heading", { level: 2, name: "Õppekavad ja ained" })).toHaveFocus();
+      expect(screen.getByLabelText("Salvestatud õppekavade grupp")).toHaveDisplayValue("Digi · 2 õppekava");
+      expect(
+        within(screen.getByRole("list", { name: "Otsingu õppekavad" })).getAllByRole("listitem").map((li) => li.textContent),
+      ).toEqual(["1.Demo infoteadus 1. õ.-a.DEMOITB-1kõik ained", "2.Demo informaatika 1. õ.-a.DEMOINF-1kõik ained"]);
+      expect(within(screen.getByRole("complementary", { name: "Kokkuvõte" })).getByText("2 õppekava · Digi")).toBeInTheDocument();
+    });
+
+    it("say which data could not be loaded", async () => {
+      const backend = createStubBackend();
+      backend.curricula.list = () => Promise.reject(new Error("offline"));
+      backend.curriculumGroups.list = () => Promise.reject(new Error("offline"));
+      await renderForm(backend);
+
+      expect(toast.error).toHaveBeenCalledWith("Õppekavade nimekirja ei õnnestunud laadida.", { autoClose: false });
+      expect(toast.error).toHaveBeenCalledWith("Õppekavade gruppe ei õnnestunud laadida.", { autoClose: false });
+      expect(curriculaCard().getByText(/Salvestatud gruppe ei õnnestunud laadida/)).toBeInTheDocument();
+      expect(curriculaCard().getByRole("button", { name: "+ Uus grupp" })).toBeEnabled();
+    });
+
+    it("are sent with the search, and not when the user chooses none", async () => {
+      const backend = createStubBackend();
+      await backend.roomGroups.create("Aulad", ["DEMO-301"]);
+      const [first] = await backend.curricula.list();
+      const saved = await backend.curriculumGroups.create("Digi", [curriculumOf(first)]);
+      if (!saved.ok) throw new Error();
+      const { onSubmit, user } = await renderForm(backend);
+      await user.type(screen.getByLabelText("Ürituse tüüp"), "Koosolek");
+      await user.selectOptions(screen.getByLabelText("Salvestatud ruumigrupp"), "Aulad · 1 ruum");
+      fireEvent.change(screen.getByLabelText("Päev 1: kuupäev"), { target: { value: "2026-12-01" } });
+      await user.selectOptions(screen.getByLabelText("Salvestatud õppekavade grupp"), "Digi · 1 õppekava");
+      await user.click(screen.getByRole("button", { name: "Leia aeg ja ruum" }));
+
+      expect(onSubmit.mock.calls[0][0].input).toMatchObject({ curricula: [curriculumOf(first)], curriculumGroupId: saved.group.id });
+      expect(onSubmit.mock.calls[0][0].asioGroups).toEqual([first]);
+
+      await user.selectOptions(screen.getByLabelText("Salvestatud õppekavade grupp"), "Õppekavu ei arvestata");
+      await user.click(screen.getByRole("button", { name: "Leia aeg ja ruum" }));
+      expect(onSubmit.mock.calls[1][0].input).toMatchObject({ curricula: null, curriculumGroupId: null });
     });
   });
 });
