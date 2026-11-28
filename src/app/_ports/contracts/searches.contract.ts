@@ -29,6 +29,8 @@ export function searchesContract(make: () => Searches, { pause = 1000, checks = 
     roomGroupId: null,
     complexityWeights: {},
     timeWindows: built.windows,
+    curricula: null,
+    curriculumGroupId: null,
   };
   const ranges = built.windows.flatMap((period) => period.days.flatMap((day) => day.ranges));
 

@@ -75,19 +75,53 @@ export interface EventTypes {
 /** A course of a curriculum (data model 5.2). */
 export type Course = { code: string; name: string };
 
-/** A curriculum as ASIO lists it (data model 5.2); chosen in #32. */
+/** A curriculum in one study year, as a search and a saved group keep it (data model 5.2, #32). */
 export type Curriculum = {
-  /** The ASIO group code, such as "IFIFB-1" (UI-1, working assumption). */
-  asioId?: string;
+  /** The ASIO group code, such as "IFIFB-1": one curriculum in one study year (UI-1, decision in #32). */
+  asioId: string;
   university: string;
   building: string;
   institute: string;
   degreeLevel: string;
   programme: string;
   specialisation?: string;
-  /** Absent or empty: the whole curriculum. */
+  /** The chosen courses; absent or empty: the whole curriculum. */
   courses?: Course[];
 };
+
+/** A group in the ASIO catalogue, as the "Õppetöö ja üritused" page lists it. */
+export type AsioGroup = Omit<Curriculum, "courses"> & {
+  /** ASIO's name of the group, such as "Informaatika 1.õ.-a.". */
+  name: string;
+  /** The ASIO code of its curriculum, such as "IFIFB", which the page lists the groups under. */
+  programmeCode: string;
+  /** All courses of the group, to choose from. */
+  courses: Course[];
+};
+
+/** The curriculum catalogue for point 1.3, read from ASIO (#30, #21). */
+export interface Curricula {
+  /** Every group; the degree levels appear in the order of the first group of each. */
+  list(): Promise<AsioGroup[]>;
+}
+
+/** One of the user's curriculum groups (`saved_groups` with kind `curriculum`, data model 4.2). */
+export type CurriculumGroup = {
+  id: string;
+  name: string;
+  /** In rank order: the first one's classes matter most. */
+  curricula: Curriculum[];
+};
+
+/** The user's curriculum groups for point 1.3 (#32, #30). Names arrive trimmed, 1–100 characters; 1–200 curricula. */
+export interface CurriculumGroups {
+  /** The user's own curriculum groups, in any order. */
+  list(): Promise<CurriculumGroup[]>;
+  /** Saves a new group, also "save under a new name". */
+  create(name: string, curricula: Curriculum[]): Promise<GroupSave<CurriculumGroup>>;
+  /** Overwrites one of the user's groups; its id stays. */
+  update(id: string, name: string, curricula: Curriculum[]): Promise<GroupSave<CurriculumGroup>>;
+}
 
 /** Everything one search needs (`searches`, data model 4.3). */
 export type SearchInput = {
@@ -102,6 +136,10 @@ export type SearchInput = {
   /** Only the weights that differ from the defaults; a missing class means the default (data model 5.3). */
   complexityWeights: Partial<Record<Complexity, number>>;
   timeWindows: TimeWindows;
+  /** The curricula whose classes the event should not overlap, in rank order; null when not used (`curricula`). */
+  curricula: Curriculum[] | null;
+  /** The saved group they were copied from (`source_curriculum_group_id`). */
+  curriculumGroupId: string | null;
 };
 
 /** The best time and room of a search. */
@@ -111,7 +149,7 @@ export type Best = { roomCode: string; start: UtcInstant; end: UtcInstant; score
 export type SearchResult = {
   /** Null when no time and room fit. */
   best: Best | null;
-  /** The curricula, or one of their courses, whose classes overlap the best time. */
+  /** The search's curricula, or one of their courses, whose classes overlap the best time. */
   unsuitableGroups: { curriculum: Curriculum; course?: Course; conflicts: Interval[] }[];
   warnings: "next_semester"[];
 };
@@ -136,4 +174,6 @@ export type Backend = {
   roomGroups: RoomGroups;
   eventTypes: EventTypes;
   searches: Searches;
+  curricula: Curricula;
+  curriculumGroups: CurriculumGroups;
 };

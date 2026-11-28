@@ -30,6 +30,8 @@ const sent: SentSearch = {
     roomGroupId: "g1",
     complexityWeights: {},
     timeWindows: [],
+    curricula: null,
+    curriculumGroupId: null,
   },
   rooms: [aula],
   summary: [{ label: "Ruumid", value: "2 ruumi · Aulad" }],
@@ -42,6 +44,7 @@ const informaatika = {
   institute: "DTI",
   degreeLevel: "Bakalaureuseõpe",
   programme: "Informaatika",
+  asioId: "IFIFB-1",
 };
 const empty: SearchResult = { best, unsuitableGroups: [], warnings: [] };
 
@@ -123,7 +126,7 @@ describe("SearchResultView", () => {
           conflicts: [{ start: "2026-12-01T12:15:00Z", end: "2026-12-01T13:45:00Z" }],
         },
         {
-          curriculum: { ...informaatika, programme: "Infoteadus", specialisation: "Infokorraldus" },
+          curriculum: { ...informaatika, asioId: "INITB-1", programme: "Infoteadus", specialisation: "Infokorraldus" },
           conflicts: [
             { start: "2026-12-01T11:00:00Z", end: "2026-12-01T12:30:00Z" },
             { start: "2026-12-01T13:00:00Z", end: "2026-12-01T14:00:00Z" },
@@ -138,7 +141,7 @@ describe("SearchResultView", () => {
     expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent("Kellele see aeg ei sobi2 gruppi");
 
     expect(rows[0]).toHaveTextContent("Informaatika (Bakalaureuseõpe)IFIFB-2Kattub: 14:15 – 15:45 · Andmebaasid");
-    expect(rows[1]).toHaveTextContent("Infoteadus, Infokorraldus (Bakalaureuseõpe)Kattub: 13:00 – 14:30, 15:00 – 16:00");
+    expect(rows[1]).toHaveTextContent("Infoteadus, Infokorraldus (Bakalaureuseõpe)INITB-1Kattub: 13:00 – 14:30, 15:00 – 16:00");
   });
 
   it("counts one group in the singular", () => {

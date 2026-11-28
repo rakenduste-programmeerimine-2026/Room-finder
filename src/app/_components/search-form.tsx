@@ -87,6 +87,8 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
         roomGroupId: rooms?.groupId ?? null,
         complexityWeights: weightChanges,
         timeWindows: windows,
+        curricula: null,
+        curriculumGroupId: null,
       },
       rooms: roomCodes.flatMap((code) => byCode.get(code) ?? []),
       summary,

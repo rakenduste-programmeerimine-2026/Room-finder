@@ -47,6 +47,8 @@ describe("stub backend", () => {
       roomGroupId: null,
       complexityWeights: { other: 0.5 },
       timeWindows: built.windows,
+      curricula: null,
+      curriculumGroupId: null,
     });
 
     expect(await searches.status(id)).toEqual({ status: "running" });

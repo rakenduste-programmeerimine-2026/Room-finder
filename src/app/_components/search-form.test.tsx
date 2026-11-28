@@ -169,6 +169,8 @@ describe("SearchForm", () => {
         roomCodes: ["DEMO-201", "DEMO-301"],
         roomGroupId: saved.group.id,
         complexityWeights: {},
+        curricula: null,
+        curriculumGroupId: null,
         timeWindows: [
           {
             source: "tool",
