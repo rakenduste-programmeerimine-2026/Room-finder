@@ -15,7 +15,15 @@ const windows = (days: { date: string; ranges: number }[]) => {
   return built.windows;
 };
 
-const empty: SummaryInput = { event: EMPTY_EVENT, roomGroup: null, roomCount: 0, windows: null, weightsChanged: false };
+const empty: SummaryInput = {
+  event: EMPTY_EVENT,
+  roomGroup: null,
+  roomCount: 0,
+  windows: null,
+  curriculumGroup: null,
+  curriculumCount: 0,
+  weightsChanged: false,
+};
 const values = (input: Partial<SummaryInput>) => summarise({ ...empty, ...input }).map((row) => row.value);
 
 describe("summarise", () => {
@@ -24,6 +32,7 @@ describe("summarise", () => {
       { label: "Üritus", value: "tüüp valimata · 1 h 30 min" },
       { label: "Ruumid", value: "valimata" },
       { label: "Kandidaatajad", value: "puuduvad või vigased" },
+      { label: "Õppekavad", value: "ei arvestata" },
       { label: "Kaalud", value: "vaikimisi" },
     ]);
   });
@@ -35,9 +44,17 @@ describe("summarise", () => {
         roomGroup: "Nõukogu ruumid",
         roomCount: 4,
         windows: windows([{ date: "2026-12-01", ranges: 2 }, { date: "2026-12-02", ranges: 1 }]),
+        curriculumGroup: "DTI bakalaureus",
+        curriculumCount: 3,
         weightsChanged: true,
       }),
-    ).toEqual(["Koosolek · 1 h 30 min · 12 inimest", "4 ruumi · Nõukogu ruumid", "2 päeva · 3 vahemikku", "muudetud"]);
+    ).toEqual([
+      "Koosolek · 1 h 30 min · 12 inimest",
+      "4 ruumi · Nõukogu ruumid",
+      "2 päeva · 3 vahemikku",
+      "3 õppekava · DTI bakalaureus",
+      "muudetud",
+    ]);
   });
 
   it("uses the singular for one", () => {
@@ -47,8 +64,10 @@ describe("summarise", () => {
         roomGroup: "Aulad",
         roomCount: 1,
         windows: windows([{ date: "2026-12-01", ranges: 1 }]),
+        curriculumGroup: "Informaatika",
+        curriculumCount: 1,
       }),
-    ).toEqual(["Seminar · 1 h 30 min · 1 inimene", "1 ruum · Aulad", "1 päev · 1 vahemik", "vaikimisi"]);
+    ).toEqual(["Seminar · 1 h 30 min · 1 inimene", "1 ruum · Aulad", "1 päev · 1 vahemik", "1 õppekava · Informaatika", "vaikimisi"]);
   });
 
   it("leaves out an invalid attendee count", () => {

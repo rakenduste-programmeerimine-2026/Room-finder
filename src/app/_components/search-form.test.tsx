@@ -22,6 +22,7 @@ async function renderForm(backend: Backend = createStubBackend()) {
   return { backend, onSubmit, user: userEvent.setup() };
 }
 
+const roomsCard = () => within(screen.getByRole("region", { name: "Ruumid" }));
 const searchRooms = () =>
   within(screen.getByRole("list", { name: "Otsingu ruumid" })).getAllByRole("listitem").map((li) => li.textContent?.slice(2, 10));
 
@@ -34,6 +35,7 @@ describe("SearchForm", () => {
       "Üritus",
       "Ruumid",
       "Kandidaatajad",
+      "Õppekavad ja ained",
       "Kokkuvõte",
     ]);
   });
@@ -67,7 +69,7 @@ describe("SearchForm", () => {
     await renderForm();
 
     expect(screen.getByText("Sul pole veel ruumigruppe. Loo esimene nupuga „+ Uus grupp“.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Muuda gruppi" })).toBeDisabled();
+    expect(roomsCard().getByRole("button", { name: "Muuda gruppi" })).toBeDisabled();
   });
 
   it("keeps every input while the editor is open, and returns to the rooms after cancel", async () => {
@@ -75,7 +77,7 @@ describe("SearchForm", () => {
     await user.type(screen.getByLabelText("Ürituse nimi (valikuline)"), "Nõukogu");
     fireEvent.change(screen.getByLabelText("Päev 1: kuupäev"), { target: { value: "2026-12-01" } });
 
-    await user.click(screen.getByRole("button", { name: "+ Uus grupp" }));
+    await user.click(roomsCard().getByRole("button", { name: "+ Uus grupp" }));
     expect(screen.getByRole("heading", { level: 1, name: "Uus ruumigrupp" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1, name: "Uus otsing" })).not.toBeInTheDocument();
 
@@ -87,7 +89,7 @@ describe("SearchForm", () => {
 
   it("selects a saved group, ranks its rooms for this search only, and edits it", async () => {
     const { backend, user } = await renderForm();
-    await user.click(screen.getByRole("button", { name: "+ Uus grupp" }));
+    await user.click(roomsCard().getByRole("button", { name: "+ Uus grupp" }));
     await user.type(screen.getByLabelText("Grupi nimi"), "Aulad");
     await user.click(screen.getByRole("button", { name: "Lisa DEMO-301 gruppi" }));
     await user.click(screen.getByRole("button", { name: "Lisa DEMO-201 gruppi" }));
@@ -100,7 +102,7 @@ describe("SearchForm", () => {
     expect(searchRooms()).toEqual(["DEMO-201", "DEMO-301"]);
     expect((await backend.roomGroups.list())[0].roomCodes).toEqual(["DEMO-301", "DEMO-201"]);
 
-    await user.click(screen.getByRole("button", { name: "Muuda gruppi" }));
+    await user.click(roomsCard().getByRole("button", { name: "Muuda gruppi" }));
     expect(screen.getByRole("heading", { level: 1, name: "Ruumigrupp: Aulad" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "DEMO-201: eemalda grupist" }));
     await user.click(screen.getByRole("button", { name: "Salvesta grupp" }));
@@ -112,7 +114,7 @@ describe("SearchForm", () => {
   it("marks rooms smaller than the attendee count", async () => {
     const { user } = await renderForm();
     await user.type(screen.getByLabelText("Osalejaid (valikuline)"), "10");
-    await user.click(screen.getByRole("button", { name: "+ Uus grupp" }));
+    await user.click(roomsCard().getByRole("button", { name: "+ Uus grupp" }));
 
     expect(screen.getByText("8 kohta · liiga väike")).toBeInTheDocument();
   });
@@ -124,7 +126,7 @@ describe("SearchForm", () => {
 
     expect(toast.error).toHaveBeenCalledWith("Ruumigruppe ei õnnestunud laadida.", { autoClose: false });
     expect(screen.getByText("Salvestatud gruppe ei õnnestunud laadida. Uue grupi saad siiski luua.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Uus grupp" })).toBeEnabled();
+    expect(roomsCard().getByRole("button", { name: "+ Uus grupp" })).toBeEnabled();
   });
 
   describe("summary card", () => {
@@ -191,6 +193,7 @@ describe("SearchForm", () => {
         "Koosolek · 1 h 30 min",
         "2 ruumi · Aulad",
         "1 päev · 1 vahemik",
+        "ei arvestata",
         "vaikimisi",
       ]);
     });

@@ -12,11 +12,15 @@ export type SummaryInput = {
   roomCount: number;
   /** Null while the time input has problems. */
   windows: TimeWindows | null;
+  /** The name of the chosen curriculum group, null if none. */
+  curriculumGroup: string | null;
+  curriculumCount: number;
   weightsChanged: boolean;
 };
 
 /** The inputs of a search in a few words. */
-export function summarise({ event, roomGroup, roomCount, windows, weightsChanged }: SummaryInput): SummaryRow[] {
+export function summarise(input: SummaryInput): SummaryRow[] {
+  const { event, roomGroup, roomCount, windows, curriculumGroup, curriculumCount, weightsChanged } = input;
   const attendees = readAttendees(event.attendees);
   const days = windows?.flatMap((period) => period.days) ?? [];
   const ranges = days.flatMap((day) => day.ranges).length;
@@ -36,6 +40,12 @@ export function summarise({ event, roomGroup, roomCount, windows, weightsChanged
       value: windows
         ? `${count(days.length, "päev", "päeva")} · ${count(ranges, "vahemik", "vahemikku")}`
         : "puuduvad või vigased",
+    },
+    {
+      label: "Õppekavad",
+      value: curriculumCount === 0
+        ? "ei arvestata"
+        : [count(curriculumCount, "õppekava", "õppekava"), curriculumGroup].filter(Boolean).join(" · "),
     },
     { label: "Kaalud", value: weightsChanged ? "muudetud" : "vaikimisi" },
   ];
