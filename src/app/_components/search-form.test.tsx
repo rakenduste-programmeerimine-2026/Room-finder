@@ -33,6 +33,7 @@ describe("SearchForm", () => {
       "Üritus",
       "Ruumid",
       "Kandidaatajad",
+      "Kokkuvõte",
     ]);
   });
 
