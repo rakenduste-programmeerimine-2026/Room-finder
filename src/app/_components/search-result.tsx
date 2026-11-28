@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "react-toastify";
 import { BOOKING_HINTS } from "@/app/_lib/complexity";
+import { curriculumName, rankOutcomes } from "@/app/_lib/curricula";
 import { count, decimal } from "@/app/_lib/format";
 import type { SummaryRow } from "@/app/_lib/search-summary";
 import {
@@ -10,14 +11,14 @@ import {
   formatUtcTime,
   type UtcInstant,
 } from "@/app/_lib/time/tallinn";
-import type { Best, Curriculum, Room, SearchInput, SearchResult } from "@/app/_ports/ports";
-import { Calendar, Pin, Warning } from "./icons";
+import type { AsioGroup, Best, Curriculum, Room, SearchInput, SearchResult } from "@/app/_ports/ports";
+import { Calendar, Check, Pin, Warning } from "./icons";
 import { RoomTags } from "./room-list";
 import { InputSummary } from "./search-summary";
 import { ghostButton, primaryButton, secondaryButton } from "./styles";
 
-/** The search as it was sent, kept for the result: its inputs, its rooms, their summary and when it was sent. */
-export type SentSearch = { input: SearchInput; rooms: Room[]; summary: SummaryRow[]; at: UtcInstant };
+/** The search as it was sent, kept for the result: its inputs, its rooms and curricula, their summary and when it was sent. */
+export type SentSearch = { input: SearchInput; rooms: Room[]; asioGroups: AsioGroup[]; summary: SummaryRow[]; at: UtcInstant };
 
 const WARNINGS: Record<SearchResult["warnings"][number], string> = {
   next_semester:
@@ -27,7 +28,6 @@ const WARNINGS: Record<SearchResult["warnings"][number], string> = {
 const card = "flex flex-col gap-4 bg-layer p-6";
 const tag = "rounded-full bg-subtle px-2 py-0.5 text-xs font-normal";
 const times = (start: UtcInstant, end: UtcInstant) => `${formatTallinnTime(start)} – ${formatTallinnTime(end)}`;
-const curriculumName = (c: Curriculum) => `${[c.programme, c.specialisation].filter(Boolean).join(", ")} (${c.degreeLevel})`;
 
 function useFocusOnMount() {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -122,7 +122,7 @@ export function SearchResultView({ sent, best, result, onEdit, onNew }: SearchRe
             </div>
           </section>
 
-          <UnsuitableGroups groups={result.unsuitableGroups} />
+          <UnsuitableGroups chosen={input.curricula} groups={result.unsuitableGroups} catalog={sent.asioGroups} />
         </div>
 
         <div className="flex flex-col gap-6">
@@ -152,40 +152,62 @@ export function SearchResultView({ sent, best, result, onEdit, onNew }: SearchRe
   );
 }
 
-/** "Kellele see aeg ei sobi" (point 3): each group with its class times that overlap the best time. */
-function UnsuitableGroups({ groups }: { groups: SearchResult["unsuitableGroups"] }) {
+type UnsuitableGroupsProps = {
+  /** The search's curricula in rank order, null if it had none. */
+  chosen: Curriculum[] | null;
+  groups: SearchResult["unsuitableGroups"];
+  catalog: AsioGroup[];
+};
+
+/**
+ * "Kellele see aeg ei sobi" (point 3): the search's curricula in rank order, each with the class
+ * times that overlap the best time, or marked as suiting it (frame 07, US-012).
+ */
+function UnsuitableGroups({ chosen, groups, catalog }: UnsuitableGroupsProps) {
+  const names = useMemo(() => new Map(catalog.map((g) => [g.asioId, g])), [catalog]);
+  const outcomes = rankOutcomes(chosen ?? [], groups);
+  const clashing = outcomes.filter((o) => o.clashes.length > 0).length;
   return (
     <section aria-labelledby="ei-sobi" className={card}>
       <h2 className="flex items-center gap-2 text-xl font-normal">
         <span id="ei-sobi">Kellele see aeg ei sobi</span>
-        {groups.length > 0 && (
+        {clashing > 0 && (
           <span className="rounded-full bg-error-bg px-2 py-0.5 text-xs text-error-ink">
-            {count(groups.length, "grupp", "gruppi")}
+            {count(clashing, "grupp", "gruppi")}
           </span>
         )}
       </h2>
-      {/* PLACEHOLDER(#32): the search sends no curricula yet; then the rows that suit and their order follow. */}
-      {groups.length === 0 ? (
+      {outcomes.length === 0 ? (
         <p className="text-sm">Õppekavu ei valitud, seega tundidega kattumist ei kontrollitud.</p>
       ) : (
         <>
-          <p className="text-xs text-ink-muted">Kõik ajad on Tallinna aja järgi.</p>
+          <p className="text-xs text-ink-muted">Sinu õppekavade eelisjärjestuses. Kõik ajad on Tallinna aja järgi.</p>
           <ul className="flex flex-col gap-2">
-            {groups.map((group, i) => (
-              <li key={i} className="flex gap-3 border border-subtle px-4 py-3">
-                <span className="text-error-ink"><Warning /></span>
-                <div className="flex flex-col gap-1">
-                  <p className="flex flex-wrap items-center gap-2 font-semibold">
-                    {curriculumName(group.curriculum)}
-                    {group.curriculum.asioId && <span className={tag}>{group.curriculum.asioId}</span>}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    Kattub: {group.conflicts.map((c) => times(c.start, c.end)).join(", ")}
-                    {group.course ? ` · ${group.course.name}` : ""}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {outcomes.map(({ rank, curriculum, clashes }) => {
+              const title = `${rank ? `${rank}. ` : ""}${curriculumName(curriculum, names)}`;
+              return clashes.length === 0 ? (
+                <li key={curriculum.asioId} className="flex items-center gap-2 px-4 text-sm">
+                  <span className="text-success"><Check /></span>
+                  {`${title} (${curriculum.asioId}) – sobib`}
+                </li>
+              ) : (
+                <li key={curriculum.asioId} className="flex gap-3 border border-subtle px-4 py-3">
+                  <span className="text-error-ink"><Warning /></span>
+                  <div className="flex flex-col gap-1">
+                    <p className="flex flex-wrap items-center gap-2 font-semibold">
+                      {title}
+                      <span className={tag}>{curriculum.asioId}</span>
+                    </p>
+                    {clashes.map((clash, i) => (
+                      <p key={i} className="text-xs text-ink-muted">
+                        Kattub: {clash.conflicts.map((c) => times(c.start, c.end)).join(", ")}
+                        {clash.course ? ` · ${clash.course.name}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

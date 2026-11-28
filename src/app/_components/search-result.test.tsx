@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "react-toastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Best, Room, SearchResult } from "@/app/_ports/ports";
+import type { AsioGroup, Best, Curriculum, Room, SearchResult } from "@/app/_ports/ports";
 import { NoResultView, SearchResultView, type SentSearch } from "./search-result";
 
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
@@ -34,24 +34,30 @@ const sent: SentSearch = {
     curriculumGroupId: null,
   },
   rooms: [aula],
+  asioGroups: [],
   summary: [{ label: "Ruumid", value: "2 ruumi · Aulad" }],
   at: "2026-11-25T19:40:00Z",
 };
 const best: Best = { roomCode: "DEMO-301", start: "2026-12-01T12:00:00Z", end: "2026-12-01T13:30:00Z", score: 0.92 };
-const informaatika = {
+const curriculum = (asioId: string, change: Partial<Curriculum> = {}): Curriculum => ({
+  asioId,
   university: "TLÜ",
   building: "Peahoone",
   institute: "DTI",
   degreeLevel: "Bakalaureuseõpe",
   programme: "Informaatika",
-  asioId: "IFIFB-1",
-};
+  ...change,
+});
+const asioGroup = (c: Curriculum, name: string): AsioGroup => ({ ...c, name, programmeCode: "IFIFB", courses: [] });
 const empty: SearchResult = { best, unsuitableGroups: [], warnings: [] };
 
-function renderResult(result: SearchResult = empty, change: Partial<Best> = {}) {
+function renderResult(result: SearchResult = empty, change: Partial<Best> = {}, sentChange: Partial<SentSearch> = {}) {
   const onEdit = vi.fn();
   const onNew = vi.fn();
-  render(<SearchResultView sent={sent} best={{ ...best, ...change }} result={result} onEdit={onEdit} onNew={onNew} />);
+  render(
+    <SearchResultView sent={{ ...sent, ...sentChange }} best={{ ...best, ...change }} result={result} onEdit={onEdit}
+      onNew={onNew} />,
+  );
   return { onEdit, onNew, user: userEvent.setup() };
 }
 
@@ -116,36 +122,62 @@ describe("SearchResultView", () => {
     expect(toast.warning).not.toHaveBeenCalled();
   });
 
-  it("lists the groups the time does not suit, with their class times in Tallinn time", () => {
-    renderResult({
-      best,
-      unsuitableGroups: [
-        {
-          curriculum: { ...informaatika, asioId: "IFIFB-2" },
-          course: { code: "IFI6001.DT", name: "Andmebaasid" },
-          conflicts: [{ start: "2026-12-01T12:15:00Z", end: "2026-12-01T13:45:00Z" }],
-        },
-        {
-          curriculum: { ...informaatika, asioId: "INITB-1", programme: "Infoteadus", specialisation: "Infokorraldus" },
-          conflicts: [
-            { start: "2026-12-01T11:00:00Z", end: "2026-12-01T12:30:00Z" },
-            { start: "2026-12-01T13:00:00Z", end: "2026-12-01T14:00:00Z" },
-          ],
-        },
-      ],
-      warnings: [],
-    });
+  it("lists the search's curricula in rank order, with the class times that overlap in Tallinn time (US-012)", () => {
+    const first = curriculum("IFIFB-1");
+    const second = curriculum("IFIFB-2", { courses: [{ code: "IFI6001.DT", name: "Andmebaasid" }] });
+    const third = curriculum("INITB-1", { programme: "Infoteadus", specialisation: "Infokorraldus" });
+    renderResult(
+      {
+        best,
+        unsuitableGroups: [
+          {
+            curriculum: third,
+            conflicts: [
+              { start: "2026-12-01T11:00:00Z", end: "2026-12-01T12:30:00Z" },
+              { start: "2026-12-01T13:00:00Z", end: "2026-12-01T14:00:00Z" },
+            ],
+          },
+          {
+            curriculum: curriculum("X-1", { programme: "Muu" }),
+            conflicts: [{ start: "2026-12-01T12:00:00Z", end: "2026-12-01T12:45:00Z" }],
+          },
+          {
+            curriculum: second,
+            course: { code: "IFI6001.DT", name: "Andmebaasid" },
+            conflicts: [{ start: "2026-12-01T12:15:00Z", end: "2026-12-01T13:45:00Z" }],
+          },
+        ],
+        warnings: [],
+      },
+      {},
+      {
+        input: { ...sent.input, curricula: [first, second, third], curriculumGroupId: "c1" },
+        asioGroups: [asioGroup(first, "Informaatika 1. õ.-a."), asioGroup(second, "Informaatika 2. õ.-a.")],
+      },
+    );
     const region = screen.getByRole("region", { name: "Kellele see aeg ei sobi" });
-    const rows = within(region).getAllByRole("listitem");
+    const rows = within(region).getAllByRole("listitem").map((li) => li.textContent);
 
-    expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent("Kellele see aeg ei sobi2 gruppi");
-
-    expect(rows[0]).toHaveTextContent("Informaatika (Bakalaureuseõpe)IFIFB-2Kattub: 14:15 – 15:45 · Andmebaasid");
-    expect(rows[1]).toHaveTextContent("Infoteadus, Infokorraldus (Bakalaureuseõpe)INITB-1Kattub: 13:00 – 14:30, 15:00 – 16:00");
+    expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent("Kellele see aeg ei sobi3 gruppi");
+    expect(rows).toEqual([
+      "1. Informaatika 1. õ.-a. (IFIFB-1) – sobib",
+      "2. Informaatika 2. õ.-a.IFIFB-2Kattub: 14:15 – 15:45 · Andmebaasid",
+      "3. Infoteadus (Infokorraldus)INITB-1Kattub: 13:00 – 14:30, 15:00 – 16:00",
+      "MuuX-1Kattub: 14:00 – 14:45",
+    ]);
   });
 
-  it("counts one group in the singular", () => {
-    renderResult({ best, unsuitableGroups: [{ curriculum: informaatika, conflicts: [] }], warnings: [] });
+  it("says when the time suits every curriculum, and counts one group in the singular", () => {
+    const chosen = [curriculum("IFIFB-1")];
+    renderResult(empty, {}, { input: { ...sent.input, curricula: chosen, curriculumGroupId: "c1" } });
+    expect(screen.queryByText(/gruppi?$/)).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Kellele see aeg ei sobi" })).toHaveTextContent(
+      "1. Informaatika (IFIFB-1) – sobib",
+    );
+  });
+
+  it("counts one unsuitable group in the singular", () => {
+    renderResult({ best, unsuitableGroups: [{ curriculum: curriculum("IFIFB-1"), conflicts: [] }], warnings: [] });
     expect(screen.getByRole("heading", { level: 2, name: /^Kellele see aeg ei sobi/ })).toHaveTextContent("1 grupp");
   });
 

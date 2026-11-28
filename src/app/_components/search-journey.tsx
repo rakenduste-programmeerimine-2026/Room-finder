@@ -90,7 +90,8 @@ export function SearchJourney() {
       </div>
       {(run.state === "submitting" || run.state === "waiting") && (
         <SearchWaiting step={run.state === "waiting" ? run.status : "submitting"}
-          roomCount={sent?.input.roomCodes.length ?? 0} onCancel={back} />
+          roomCount={sent?.input.roomCodes.length ?? 0} curriculumCount={sent?.input.curricula?.length ?? 0}
+          onCancel={back} />
       )}
       {run.state === "result" && sent && (
         <SearchResultView sent={sent} best={run.best} result={run.result} onEdit={back} onNew={startOver} />
