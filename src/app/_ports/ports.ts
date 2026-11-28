@@ -50,8 +50,9 @@ export type RoomGroup = {
   roomCodes: string[];
 };
 
-/** A taken name is an expected answer; any other failure rejects the promise. */
-export type RoomGroupSave = { ok: true; group: RoomGroup } | { ok: false; reason: "name_taken" };
+/** Saving a named group: a taken name is an expected answer; any other failure rejects the promise. */
+export type GroupSave<G> = { ok: true; group: G } | { ok: false; reason: "name_taken" };
+export type RoomGroupSave = GroupSave<RoomGroup>;
 
 /** The user's room groups for point 1 (#25, #19). Names arrive trimmed, 1–100 characters; 1–200 rooms. */
 export interface RoomGroups {
