@@ -107,12 +107,14 @@ As an organiser, I want to upload times as a CSV file instead of or together wit
 Acceptance criteria:
 - Given no file, when I open the CSV tab, then the format, an example and a sample file to download are shown.
 - Given the manual tab is open, when I drag a CSV file over the page, then a drop zone covers the page; when I drop it, then the CSV tab opens and the file is checked.
-- Given a file that is not .csv, or 1 MB + 1 byte, when I drop it, then it is not sent and an error toast says why; a 1 MB .csv file is sent.
+- Given a file that is not .csv, or 1 MB + 1 byte, when I drop it, then it is not sent and an error toast says why; a 1 MB .csv file is sent (1 MB = 1 048 576 bytes).
 - Given a valid file, when the server accepts it, then the file name and the number of rows and days are shown.
 - Given a file with bad rows, when the server rejects it, then an error toast names the rows and the file is marked invalid.
 - Given the check request fails, when it ends, then the file is removed and an error toast is shown.
 - Given an accepted or rejected file, when I choose another file, then it replaces the old one and is checked; when I remove it, then no file is used.
-- Given an accepted file and manual times, when "Kasuta koos käsitsi sisestatud aegadega" is on, then both are sent; when it is off, then only the CSV ranges are sent.
+- Given an accepted file and manual times, when "Kasuta koos käsitsi sisestatud aegadega" is on, then both are sent; when it is off, then only the CSV ranges are sent. It is on at first when the manual times have no problems.
+- Given a file being checked, when I choose another file, then only the answer about the new file counts.
+- Given the loading screen, a result or an editor, when I drop a file, then nothing happens.
 
 ### US-009: Choose, rank and save curricula and courses
 
