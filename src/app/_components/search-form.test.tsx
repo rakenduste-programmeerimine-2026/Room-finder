@@ -174,6 +174,7 @@ describe("SearchForm", () => {
         complexityWeights: {},
         curricula: null,
         curriculumGroupId: null,
+        csvFilename: null,
         timeWindows: [
           {
             source: "tool",

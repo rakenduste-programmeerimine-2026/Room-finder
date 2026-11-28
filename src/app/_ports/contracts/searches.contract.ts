@@ -31,6 +31,7 @@ export function searchesContract(make: () => Searches, { pause = 1000, checks = 
     timeWindows: built.windows,
     curricula: null,
     curriculumGroupId: null,
+    csvFilename: null,
   };
   const ranges = built.windows.flatMap((period) => period.days.flatMap((day) => day.ranges));
 

@@ -111,6 +111,7 @@ export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) =>
         roomGroupId: rooms?.groupId ?? null,
         complexityWeights: weightChanges,
         timeWindows: windows,
+        csvFilename: null,
         curricula: chosenCurricula.length ? chosenCurricula : null,
         curriculumGroupId: chosenCurricula.length ? (curricula?.groupId ?? null) : null,
       },

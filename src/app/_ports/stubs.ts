@@ -1,6 +1,7 @@
 import { DEFAULT_WEIGHTS } from "@/app/_lib/complexity";
 import { toUtcInstant } from "@/app/_lib/time/tallinn";
-import type { AsioGroup, Backend, Course, Curriculum, GroupSave, Room, SearchInput, SearchResult } from "./ports";
+import { buildTimeWindows } from "@/app/_lib/time/time-windows";
+import type { AsioGroup, Backend, CsvCheck, Course, Curriculum, GroupSave, Room, SearchInput, SearchResult } from "./ports";
 
 const room = (
   code: string,
@@ -82,6 +83,31 @@ const DEMO_CURRICULA: AsioGroup[] = [
 // Tallinn), not taken from ASIO or the academic calendar. A fixed date goes
 // stale once it passes.
 const NEXT_SEMESTER = "2027-01-31T22:00:00Z";
+
+/**
+ * PLACEHOLDER(#31): a made-up answer that does not read the file. A file whose name has "viga" in it
+ * gets two row errors; any other file gives two days in December 2026 as CSV periods.
+ */
+function madeUpCsvCheck(name: string): CsvCheck {
+  if (name.toLocaleLowerCase("et").includes("viga")) {
+    return {
+      ok: false,
+      errors: [
+        { row: 4, message: "lõpp on enne algust" },
+        { row: 9, message: "kuupäeva 2026-02-30 ei ole kalendris" },
+      ],
+    };
+  }
+  const built = buildTimeWindows(
+    [
+      { date: "2026-12-08", ranges: [{ start: "10:00", end: "12:00" }, { start: "13:00", end: "15:00" }] },
+      { date: "2026-12-09", ranges: [{ start: "09:00", end: "11:30" }] },
+    ],
+    5,
+  );
+  if (!built.ok) throw new Error("the made-up CSV times are invalid");
+  return { ok: true, rows: 3, timeWindows: built.windows.map((period) => ({ ...period, source: "csv" })) };
+}
 
 const later = (instant: string, minutes: number) => toUtcInstant(Date.parse(instant) + minutes * 60_000);
 
@@ -165,5 +191,6 @@ export function createStubBackend(): Backend {
     curricula: { list: async () => structuredClone(DEMO_CURRICULA) },
     // PLACEHOLDER(#30): curriculum groups live in memory and are gone after a reload.
     curriculumGroups: savedGroups((id, name, curricula: Curriculum[]) => ({ id, name, curricula })),
+    csvFiles: { check: async (file) => madeUpCsvCheck(file.name) },
   };
 }

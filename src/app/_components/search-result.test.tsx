@@ -32,6 +32,7 @@ const sent: SentSearch = {
     timeWindows: [],
     curricula: null,
     curriculumGroupId: null,
+    csvFilename: null,
   },
   rooms: [aula],
   asioGroups: [],

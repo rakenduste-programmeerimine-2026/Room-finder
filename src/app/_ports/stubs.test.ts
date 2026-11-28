@@ -54,6 +54,7 @@ describe("stub backend", () => {
       timeWindows: built.windows,
       curricula: null,
       curriculumGroupId: null,
+      csvFilename: null,
     });
 
     expect(await searches.status(id)).toEqual({ status: "running" });
@@ -84,6 +85,7 @@ describe("stub backend", () => {
       timeWindows: built.windows,
       curricula: chosen,
       curriculumGroupId: null,
+      csvFilename: null,
     });
     await searches.status(id);
 
