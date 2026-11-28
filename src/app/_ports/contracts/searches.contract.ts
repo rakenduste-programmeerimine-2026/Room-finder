@@ -68,6 +68,28 @@ export function searchesContract(make: () => Searches, { pause = 1000, checks = 
       expect(Array.isArray(warnings)).toBe(true);
     }, timeout);
 
+    it("names only the search's curricula as unsuitable, each with class times that overlap the best time", async () => {
+      const searches = make();
+      const curriculum = (asioId: string) => ({
+        asioId,
+        university: "TLÜ",
+        building: "Demo maja A",
+        institute: "Demo digiinstituut",
+        degreeLevel: "Bakalaureuseõpe",
+        programme: "Demo informaatika",
+      });
+      const curricula = [curriculum("DEMOINF-1"), curriculum("DEMOINF-2")];
+      const status = await finished(searches, await searches.start({ ...input, curricula }));
+      if (status.status !== "done" || !status.result.best) throw new Error(`expected a best time, got ${JSON.stringify(status)}`);
+      const { best, unsuitableGroups } = status.result;
+
+      for (const group of unsuitableGroups) {
+        expect(curricula.map((c) => c.asioId)).toContain(group.curriculum.asioId);
+        expect(group.conflicts.length).toBeGreaterThan(0);
+        for (const c of group.conflicts) expect(c.start < best.end && best.start < c.end).toBe(true);
+      }
+    }, timeout);
+
     // UI-11 (working assumption): rooms below the attendee count are left out.
     it("finds nothing when no room holds the attendees", async () => {
       const searches = make();
