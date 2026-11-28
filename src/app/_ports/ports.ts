@@ -1,4 +1,5 @@
 import type { UtcInstant } from "@/app/_lib/time/tallinn";
+import type { Interval, TimeWindows } from "@/app/_lib/time/time-windows";
 
 /**
  * What the UI needs from the backend. One small interface per capability; the
@@ -70,9 +71,68 @@ export interface EventTypes {
   popular(): Promise<EventTypeUse[]>;
 }
 
+/** A course of a curriculum (data model 5.2). */
+export type Course = { code: string; name: string };
+
+/** A curriculum as ASIO lists it (data model 5.2); chosen in #32. */
+export type Curriculum = {
+  /** The ASIO group code, such as "IFIFB-1" (UI-1, working assumption). */
+  asioId?: string;
+  university: string;
+  building: string;
+  institute: string;
+  degreeLevel: string;
+  programme: string;
+  specialisation?: string;
+  /** Absent or empty: the whole curriculum. */
+  courses?: Course[];
+};
+
+/** Everything one search needs (`searches`, data model 4.3). */
+export type SearchInput = {
+  name: string | null;
+  eventType: string;
+  durationMinutes: number;
+  attendees: number | null;
+  /** Room codes in rank order: the first is the most preferred (`room_items`). */
+  roomCodes: string[];
+  /** The saved group the rooms were copied from (`source_room_group_id`). */
+  roomGroupId: string | null;
+  /** Only the weights that differ from the defaults; a missing class means the default (data model 5.3). */
+  complexityWeights: Partial<Record<Complexity, number>>;
+  timeWindows: TimeWindows;
+};
+
+/** The best time and room of a search. */
+export type Best = { roomCode: string; start: UtcInstant; end: UtcInstant; score: number };
+
+/** The answer of the matching (`searches.result`, data model 5.5). */
+export type SearchResult = {
+  /** Null when no time and room fit. */
+  best: Best | null;
+  /** The curricula, or one of their courses, whose classes overlap the best time. */
+  unsuitableGroups: { curriculum: Curriculum; course?: Course; conflicts: Interval[] }[];
+  warnings: "next_semester"[];
+};
+
+/** Where a search is (`searches.status`, `result` and `error`, data model 4.3). */
+export type SearchStatus =
+  | { status: "pending" | "running" }
+  | { status: "done"; result: SearchResult }
+  | { status: "failed"; error: string };
+
+/** Running a search and reading its answer, for points 2 and 3 (#27, #23). */
+export interface Searches {
+  /** Saves the search and starts the matching; resolves with the search's id. */
+  start(input: SearchInput): Promise<string>;
+  /** The search's status now. Rejects for an id the user has no search with. */
+  status(id: string): Promise<SearchStatus>;
+}
+
 export type Backend = {
   semester: Semester;
   rooms: Rooms;
   roomGroups: RoomGroups;
   eventTypes: EventTypes;
+  searches: Searches;
 };

@@ -1,4 +1,6 @@
-import type { Backend, Room, RoomGroup, RoomGroupSave } from "./ports";
+import { DEFAULT_WEIGHTS } from "@/app/_lib/complexity";
+import { toUtcInstant } from "@/app/_lib/time/tallinn";
+import type { Backend, Room, RoomGroup, RoomGroupSave, SearchInput, SearchResult } from "./ports";
 
 const room = (
   code: string,
@@ -23,6 +25,31 @@ const DEMO_ROOMS: Room[] = [
   room("DEMO-401", 20, false, ["Demo kohvik"], "other", ["koosolek"]),
 ];
 
+// PLACEHOLDER(#20): an illustrative start of spring 2027 (1 February, 00:00 in
+// Tallinn), not taken from ASIO or the academic calendar. A fixed date goes
+// stale once it passes.
+const NEXT_SEMESTER = "2027-01-31T22:00:00Z";
+
+/**
+ * PLACEHOLDER(#23): a made-up answer, not the matching of #22. It takes the
+ * first ranked room big enough for the attendees and the start of the first
+ * candidate range, so that the loading screen and the result can be tried.
+ */
+function madeUpResult(input: SearchInput): SearchResult {
+  const room = input.roomCodes
+    .map((code) => DEMO_ROOMS.find((r) => r.code === code))
+    .find((r) => r && (input.attendees === null || r.capacity >= input.attendees));
+  const range = input.timeWindows[0]?.days[0]?.ranges[0];
+  if (!room || !range) return { best: null, unsuitableGroups: [], warnings: [] };
+  const end = toUtcInstant(Date.parse(range.start) + input.durationMinutes * 60_000);
+  const score = input.complexityWeights[room.complexity] ?? DEFAULT_WEIGHTS[room.complexity];
+  return {
+    best: { roomCode: room.code, start: range.start, end, score },
+    unsuitableGroups: [],
+    warnings: range.start >= NEXT_SEMESTER ? ["next_semester"] : [],
+  };
+}
+
 /** Stand-ins for the backend until its adapters exist. Each call starts with an empty store. */
 export function createStubBackend(): Backend {
   // PLACEHOLDER(#19): room groups live in memory and are gone after a reload.
@@ -34,14 +61,11 @@ export function createStubBackend(): Backend {
     groups.set(id, group);
     return { ok: true, group: copy(group) };
   };
+  // PLACEHOLDER(#23): searches live in memory; the first status check says "running", the next one "done".
+  const searches = new Map<string, { input: SearchInput; checks: number }>();
 
   return {
-    semester: {
-      // PLACEHOLDER(#20): an illustrative start of spring 2027 (1 February,
-      // 00:00 in Tallinn), not taken from ASIO or the academic calendar. A
-      // fixed date goes stale once it passes.
-      nextStart: async () => "2027-01-31T22:00:00Z",
-    },
+    semester: { nextStart: async () => NEXT_SEMESTER },
     rooms: {
       list: async () => DEMO_ROOMS.map((r) => ({ ...r, aliases: [...r.aliases], eventTypes: [...r.eventTypes] })),
     },
@@ -59,6 +83,19 @@ export function createStubBackend(): Backend {
         [...new Set(DEMO_ROOMS.flatMap((r) => r.eventTypes))]
           .sort((a, b) => (a < b ? -1 : 1))
           .map((eventType) => ({ eventType, useCount: 0 })),
+    },
+    searches: {
+      start: async (input) => {
+        const id = crypto.randomUUID();
+        searches.set(id, { input: structuredClone(input), checks: 0 });
+        return id;
+      },
+      status: async (id) => {
+        const search = searches.get(id);
+        if (!search) throw new Error(`Unknown search ${id}`);
+        search.checks += 1;
+        return search.checks === 1 ? { status: "running" } : { status: "done", result: madeUpResult(search.input) };
+      },
     },
   };
 }

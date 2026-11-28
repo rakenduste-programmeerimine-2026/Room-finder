@@ -1,7 +1,7 @@
 # Search journey (user interface)
 
 Status: explicit (design; being built)
-Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor; all files in `src/app/_components/`. The other states come with #27, #32 and #33
+Code locations: Composing, event: `src/app/_components/event-fields.tsx` (#37, #25); rooms and weights: `room-picker.tsx`, `complexity-weights.tsx` (#25); time windows: `time-window-tool.tsx` (#26); summary and "Leia aeg ja ruum": `search-summary.tsx` (#27). RoomGroupEditor: `room-group-editor.tsx` (#25). `search-form.tsx` holds them and switches between Composing and RoomGroupEditor. Submitting, Waiting, Result and NoResult (#27): the states and transitions are `nextRun` in `src/app/_lib/search-run.ts`; `search-journey.tsx` runs them and shows `search-waiting.tsx` and `search-result.tsx`. Components are in `src/app/_components/`. CurriculumGroupEditor and the CSV upload come with #32 and #33
 Decision: explicit by design
 Analysis: none
 
@@ -20,13 +20,15 @@ stateDiagram-v2
     CurriculumGroupEditor --> Composing: save as new name, overwrite, cancel
     CurriculumGroupEditor --> CurriculumGroupEditor: save fails
     Composing --> Submitting: find time and room [required inputs valid]
+    Submitting --> Submitting: button pressed again
     Submitting --> Waiting: search created
     Submitting --> Composing: request fails (error toast)
-    Waiting --> Waiting: status still pending or running
+    Waiting --> Waiting: status still pending or running, or the check fails
     Waiting --> Result: done, best found
     Waiting --> NoResult: done, best is null
     Waiting --> Composing: failed or timed out (error toast)
     Waiting --> Composing: stop waiting
+    Submitting --> Composing: stop waiting
     Result --> Composing: change inputs / new search
     NoResult --> Composing: change inputs / new search
 ```
@@ -38,8 +40,8 @@ stateDiagram-v2
 | Composing | The search form; initial state. Inputs stay when the user comes back from another state, unless they start a new search. | 01, 03, 04 | [UNDERSTANDING] |
 | RoomGroupEditor | Building, ranking and saving a room group | 02 | [REQUIREMENT #25] "Kasutaja saab moodustada ruumi gruppe ise ja luua eelisjärjestuse ruumide osas, neile nime anda ja neid salvestada." |
 | CurriculumGroupEditor | Choosing, changing, ranking and saving curricula and courses | 05 | [REQUIREMENT #32] "Kasutaja saab valida kas varem kokkupandud gruppide seast, valida grupi ja tagantjärele muuta seda ning uue nimega salvestada ja eelisjärjekorra õppekavade vahel koostada." |
-| Submitting | The search request is being sent | 01 | [UNDERSTANDING] |
-| Waiting | The backend collects ASIO data and computes; the loading screen is shown | 06 | [REQUIREMENT #27] "Igaksjuhuks võiks frontend mingi ooteekraani teha kuni backendilt vastust ootab." |
+| Submitting | The search request is being sent; the loading screen is shown, its first step active | 06 | [UNDERSTANDING] |
+| Waiting | The backend collects ASIO data and computes; the loading screen shows `pending` or `running` as the second or third step | 06 | [REQUIREMENT #27] "Igaksjuhuks võiks frontend mingi ooteekraani teha kuni backendilt vastust ootab." |
 | Result | The best time and room and the groups it does not suit | 07 | [REQUIREMENT #27] "Frontend kuvab backendist saadetud vastuse ja nimekirja gruppidest kellele see aeg ei sobinud." |
 | NoResult | The search finished but no time and room fit | 08 D | [UNDERSTANDING] `result.best` is null (data model 5.5) |
 
@@ -67,14 +69,18 @@ S is the first local (Europe/Tallinn) date of the next semester; the `Semester` 
 | CurriculumGroupEditor | save or overwrite | name invalid or taken; 0 or over 200 curricula; or the request fails | CurriculumGroupEditor, error toast, changes kept | [UNDERSTANDING] |
 | CurriculumGroupEditor | cancel | – | Composing, saved group unchanged | [UNDERSTANDING] |
 | Composing | "Leia aeg ja ruum" | at least one room; at least one valid time range; event type and duration set | Submitting | Rooms and time ranges: [REQUIREMENT #23] "Punktid 1.1 ja 1.2 on alati nõutud, 1.3 ja 1.4 on valikulised ning iga kombinatsioon neist on lubatud kaasaarvatud tühihulk." Event type and duration: [UNDERSTANDING] (data model 4.3, Q8). Whether an accepted CSV alone counts as a time range is UI-9; working assumption yes, from [REQUIREMENT #33] "Alternatiivselt saab 1.2) asemel kindla struktuuriga csv faili üles laadida". |
-| Composing | "Leia aeg ja ruum" | a required input is missing or the CSV is in Checking | Composing, button disabled, missing items listed | [UNDERSTANDING] |
+| Composing | "Leia aeg ja ruum" | a required input is missing or the CSV is in Checking | Composing, button disabled, missing items listed; a missing item moves the focus to its section | [UNDERSTANDING] |
+| Submitting | "Leia aeg ja ruum" again | – | Submitting, nothing sent | [UNDERSTANDING] (US-010) |
+| Submitting | "Katkesta ootamine" | – | Composing, inputs kept; the search id that arrives later is ignored | [UNDERSTANDING] |
 | Submitting | search created | – | Waiting | [UNDERSTANDING] |
 | Submitting | request fails | – | Composing, error toast, inputs kept | Toast: [REQUIREMENT #27] "errors as toastify warnings" (acceptance criterion). Inputs kept: [UNDERSTANDING]. |
 | Waiting | status check | `pending` or `running` | Waiting | [UNDERSTANDING] (data model `searches.status`) |
 | Waiting | status check | `done` and `result.best` is set | Result | [UNDERSTANDING] |
 | Waiting | status check | `done` and `result.best` is null | NoResult | [UNDERSTANDING] |
 | Waiting | status check | `failed`, or no answer after 2 minutes | Composing, error toast, inputs kept | [UNDERSTANDING] (UI-3) |
+| Waiting | status check fails (no answer from the backend) | – | Waiting; checked again 2 s later, until the 2 minutes are over | [UNDERSTANDING] |
 | Waiting | "Katkesta ootamine" | – | Composing, inputs kept | [UNDERSTANDING] |
+| Waiting | status check | `done`, `result.best` is set and `result.warnings` holds `next_semester` | Result, a warning toast and the warning in the "Hoiatused" box | Toast: [REQUIREMENT #27] "Frontend kasutab toastify-d hoiatusteks." Box: [UNDERSTANDING] (frame 07) |
 | Result | "Muuda sisendeid" | – | Composing with the same inputs | [UNDERSTANDING] |
 | Result | "Uus otsing" | – | Composing, empty inputs | [UNDERSTANDING] |
 | NoResult | "Muuda sisendeid" | – | Composing with the same inputs | [UNDERSTANDING] |
@@ -121,6 +127,7 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 ## Unknowns
 
 - Waiting + "Katkesta ootamine": does the search keep running on the server, and can the user return to it? (UI-3)
+- Submitting + the request never answers, or Waiting + a status check never answers: the 2-minute limit starts only in Waiting and the next check waits for the previous answer, so the user stops waiting by hand (#27 Unconfirmed decisions).
 - Waiting, Submitting or Result + page reload or closed tab: can the UI resume by search id, for example `/otsing/<id>`?
 - Submitting + the button pressed twice: the UI sends one search, but does the backend need an idempotency key?
 - Any state + anonymous session lost (new browser, cleared site data): saved groups are not visible any more. Is a warning needed?
@@ -129,5 +136,4 @@ The backend parses the file (#31, UI-8); the UI only shows its answer.
 - Accepted + manual times with "Kasuta koos käsitsi sisestatud aegadega" off: the CSV replaces them; is that clear enough to the user?
 - Accepted + manual times: does the UI show the union of the ranges (data model 5.4 says the solver takes the union)?
 - Rejected + valid manual times: the search can run with the manual times only; should the UI ask first?
-- Result + `result.warnings` contains `next_semester` (data model 5.5): shown as a toast and in the warnings box, or only in the box?
 - CurriculumGroupEditor + the ASIO catalogue is slow or fails (data model Q6, #21): what does the list show?

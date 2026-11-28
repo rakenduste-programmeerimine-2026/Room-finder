@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { count, formatDuration } from "./format";
+import { count, decimal, formatDuration } from "./format";
 
 describe("formatDuration", () => {
   it.each([
@@ -22,5 +22,16 @@ describe("count", () => {
     [21, "21 ruumi"],
   ])("%i rooms → %s", (n, text) => {
     expect(count(n, "ruum", "ruumi")).toBe(text);
+  });
+});
+
+describe("decimal", () => {
+  it.each([
+    [0, "0,00"],
+    [0.7, "0,70"],
+    [0.92, "0,92"],
+    [1, "1,00"],
+  ])("%d → %s", (n, text) => {
+    expect(decimal(n)).toBe(text);
   });
 });

@@ -5,20 +5,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendContext } from "@/app/_ports/backend";
 import type { Backend } from "@/app/_ports/ports";
 import { createStubBackend } from "@/app/_ports/stubs";
-import { SearchForm } from "./search-form";
+import { SearchForm, type Submission } from "./search-form";
 
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 beforeEach(() => vi.mocked(toast.error).mockClear());
 
 async function renderForm(backend: Backend = createStubBackend()) {
+  const onSubmit = vi.fn<(submission: Submission) => void>();
   render(
     <BackendContext value={backend}>
-      <SearchForm />
+      <SearchForm onSubmit={onSubmit} />
     </BackendContext>,
   );
   await act(async () => {}); // let the backend answer
-  return { backend, user: userEvent.setup() };
+  return { backend, onSubmit, user: userEvent.setup() };
 }
 
 const searchRooms = () =>
@@ -33,6 +34,7 @@ describe("SearchForm", () => {
       "Üritus",
       "Ruumid",
       "Kandidaatajad",
+      "Kokkuvõte",
     ]);
   });
 
@@ -123,5 +125,72 @@ describe("SearchForm", () => {
     expect(toast.error).toHaveBeenCalledWith("Ruumigruppe ei õnnestunud laadida.", { autoClose: false });
     expect(screen.getByText("Salvestatud gruppe ei õnnestunud laadida. Uue grupi saad siiski luua.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Uus grupp" })).toBeEnabled();
+  });
+
+  describe("summary card", () => {
+    const summary = () => within(screen.getByRole("complementary", { name: "Kokkuvõte" }));
+
+    it("lists the missing parts, keeps the button disabled and takes the focus to a missing part", async () => {
+      const { user } = await renderForm();
+
+      expect(summary().getByRole("button", { name: "Leia aeg ja ruum" })).toBeDisabled();
+      expect(summary().getByText("tüüp valimata · 1 h 30 min")).toBeInTheDocument();
+      await user.click(summary().getByRole("button", { name: "Vali vähemalt üks ruum (1.1)" }));
+      expect(screen.getByRole("heading", { level: 2, name: "Ruumid" })).toHaveFocus();
+      await user.click(summary().getByRole("button", { name: "Lisa kuupäev ja paranda vigased ajavahemikud (1.2)" }));
+      expect(screen.getByRole("heading", { level: 2, name: "Kandidaatajad" })).toHaveFocus();
+      await user.click(summary().getByRole("button", { name: "Ürituse tüüp on valimata" }));
+      expect(screen.getByRole("heading", { level: 2, name: "Üritus" })).toHaveFocus();
+    });
+
+    it("hands over the search once the required parts are ready", async () => {
+      const backend = createStubBackend();
+      const saved = await backend.roomGroups.create("Aulad", ["DEMO-301", "DEMO-201"]);
+      if (!saved.ok) throw new Error();
+      const { onSubmit, user } = await renderForm(backend);
+      await user.type(screen.getByLabelText("Ürituse tüüp"), " Koosolek ");
+      await user.selectOptions(screen.getByLabelText("Salvestatud ruumigrupp"), "Aulad · 2 ruumi");
+      await user.click(screen.getByRole("button", { name: "DEMO-201: liiguta üles" }));
+      fireEvent.change(screen.getByLabelText("Päev 1: kuupäev"), { target: { value: "2026-12-01" } });
+
+      expect(summary().getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+        "Ruumid valitud (1.1)",
+        "Vähemalt üks ajavahemik (1.2)",
+        "Ürituse tüüp ja kestus valitud",
+      ]);
+      await user.click(summary().getByRole("button", { name: "Leia aeg ja ruum" }));
+
+      const [submission] = onSubmit.mock.calls[0];
+      expect(submission.input).toEqual({
+        name: null,
+        eventType: "Koosolek",
+        durationMinutes: 90,
+        attendees: null,
+        roomCodes: ["DEMO-201", "DEMO-301"],
+        roomGroupId: saved.group.id,
+        complexityWeights: {},
+        timeWindows: [
+          {
+            source: "tool",
+            start: "2026-11-30T22:00:00Z",
+            end: "2026-12-01T22:00:00Z",
+            days: [
+              {
+                start: "2026-11-30T22:00:00Z",
+                end: "2026-12-01T22:00:00Z",
+                ranges: [{ start: "2026-12-01T08:00:00Z", end: "2026-12-01T10:00:00Z" }],
+              },
+            ],
+          },
+        ],
+      });
+      expect(submission.rooms.map((r) => r.code)).toEqual(["DEMO-201", "DEMO-301"]);
+      expect(submission.summary.map((row) => row.value)).toEqual([
+        "Koosolek · 1 h 30 min",
+        "2 ruumi · Aulad",
+        "1 päev · 1 vahemik",
+        "vaikimisi",
+      ]);
+    });
   });
 });
