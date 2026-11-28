@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   formatLocalDate,
   formatTallinnDate,
+  formatTallinnDay,
   formatTallinnTime,
+  formatUtcTime,
   parseLocalDate,
   parseLocalTime,
   tallinnDay,
@@ -183,6 +185,21 @@ describe("formatting for display", () => {
   it("names the Tallinn date of a UTC instant, also when it is still the previous day in UTC", () => {
     expect(formatTallinnDate("2027-01-31T22:00:00Z")).toBe("1. veebruar 2027");
     expect(formatTallinnDate("2026-07-15T21:30:00Z")).toBe("16. juuli 2026");
+  });
+
+  it("names the Tallinn day of a UTC instant with its weekday, across midnight and the changes", () => {
+    expect(formatTallinnDay("2026-11-30T21:59:59Z")).toBe("Esmaspäev, 30. november 2026");
+    expect(formatTallinnDay("2026-11-30T22:00:00Z")).toBe("Teisipäev, 1. detsember 2026");
+    expect(formatTallinnDay("2026-12-31T22:00:00Z")).toBe("Reede, 1. jaanuar 2027");
+    expect(formatTallinnDay("2026-03-28T22:00:00Z")).toBe("Pühapäev, 29. märts 2026"); // 00:00 at UTC+2
+    expect(formatTallinnDay("2026-03-29T21:00:00Z")).toBe("Esmaspäev, 30. märts 2026"); // 00:00 at UTC+3
+    expect(formatTallinnDay("2026-10-24T20:59:59Z")).toBe("Laupäev, 24. oktoober 2026");
+    expect(formatTallinnDay("2026-10-24T21:00:00Z")).toBe("Pühapäev, 25. oktoober 2026");
+  });
+
+  it("shows the UTC time of an instant", () => {
+    expect(formatUtcTime("2026-12-01T12:00:00Z")).toBe("12:00");
+    expect(formatUtcTime("2026-11-30T23:59:00Z")).toBe("23:59");
   });
 
   it("refuses a date that does not exist", () => {

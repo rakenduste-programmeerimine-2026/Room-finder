@@ -141,6 +141,16 @@ const tallinnDate = new Intl.DateTimeFormat("et-EE", {
   year: "numeric",
 });
 
+const tallinnDayName = new Intl.DateTimeFormat("et-EE", {
+  timeZone: TALLINN,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+const capitalised = (text: string) => text.charAt(0).toLocaleUpperCase("et-EE") + text.slice(1);
+
 /** The Tallinn calendar date of a UTC instant: "1. veebruar 2027". */
 export function formatTallinnDate(instant: UtcInstant): string {
   return tallinnDate.format(Date.parse(instant));
@@ -151,9 +161,16 @@ export function formatLocalDate(date: LocalDate): string {
   const parts = parseLocalDate(date);
   if (!parts) throw new RangeError(`Not a calendar date: ${date}`);
   // Noon UTC is the same calendar date everywhere, so formatting in UTC is safe.
-  const text = dayName.format(Date.UTC(parts.year, parts.month - 1, parts.day, 12));
-  return text.charAt(0).toLocaleUpperCase("et-EE") + text.slice(1);
+  return capitalised(dayName.format(Date.UTC(parts.year, parts.month - 1, parts.day, 12)));
 }
+
+/** The Tallinn date of a UTC instant with its weekday: "Teisipäev, 1. detsember 2026". */
+export function formatTallinnDay(instant: UtcInstant): string {
+  return capitalised(tallinnDayName.format(Date.parse(instant)));
+}
+
+/** The UTC wall-clock time of an instant, shown next to the local time: "12:00". */
+export const formatUtcTime = (instant: UtcInstant): string => instant.slice(11, 16);
 
 /**
  * The Tallinn wall-clock time of a UTC instant: "14:00". In the repeated hour
