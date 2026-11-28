@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildTimeWindows } from "@/app/_lib/time/time-windows";
+import { curriculaContract } from "./contracts/curricula.contract";
+import { curriculumGroupsContract } from "./contracts/curriculum-groups.contract";
 import { eventTypesContract } from "./contracts/event-types.contract";
 import { roomGroupsContract } from "./contracts/room-groups.contract";
 import { roomsContract } from "./contracts/rooms.contract";
@@ -12,6 +14,8 @@ roomsContract(() => createStubBackend().rooms);
 roomGroupsContract(() => createStubBackend().roomGroups);
 eventTypesContract(() => createStubBackend().eventTypes);
 searchesContract(() => createStubBackend().searches, { pause: 0 });
+curriculaContract(() => createStubBackend().curricula);
+curriculumGroupsContract(() => createStubBackend().curriculumGroups);
 
 describe("stub backend", () => {
   it("hands out copies, so the caller cannot change the store", async () => {
