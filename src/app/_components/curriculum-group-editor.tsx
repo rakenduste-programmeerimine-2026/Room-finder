@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   curriculumName,
   curriculumOf,
@@ -17,6 +17,7 @@ import type { AsioGroup, Curriculum, CurriculumGroup } from "@/app/_ports/ports"
 import { saveGroup } from "./group-save";
 import { RankedList } from "./ranked-list";
 import { Select } from "./select";
+import { tabId, Tabs } from "./tabs";
 import { error, field, ghostButton, helper, label, primaryButton, secondaryButton } from "./styles";
 
 export type CurriculumGroupEditorProps = {
@@ -80,21 +81,11 @@ export function CurriculumGroupEditor({ catalog, group, groups, onSaved, onCance
   const nameIssue = shown.find((i) => i !== "empty" && i !== "too_many");
   const listIssue = shown.find((i) => i === "empty" || i === "too_many");
   const full = chosen.length >= MAX_GROUP_ITEMS;
-  const tabId = (index: number) => `${id}-tab-${index}`;
-
   // The place filters list the open tab's values, so a new tab starts without them.
   const selectLevel = (degreeLevel: string) =>
     setFilter({ ...filter, degreeLevel, university: "", building: "", institute: "" });
   const choose = (asioGroup: AsioGroup, on: boolean) =>
     setChosen(on ? [...chosen, curriculumOf(asioGroup)] : chosen.filter((c) => c.asioId !== asioGroup.asioId));
-
-  function onTabKey(e: KeyboardEvent, index: number) {
-    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-    if (!step) return;
-    const next = (index + step + levels.length) % levels.length;
-    selectLevel(levels[next]);
-    document.getElementById(tabId(next))?.focus();
-  }
 
   async function save(asNew: boolean) {
     setAttempted(true);
@@ -126,18 +117,10 @@ export function CurriculumGroupEditor({ catalog, group, groups, onSaved, onCance
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <section aria-labelledby={`${id}-find`} className="flex flex-col gap-4 bg-layer p-6">
           <h2 id={`${id}-find`} className="text-xl font-normal">Vali õppekavad</h2>
-          <div role="tablist" aria-label="Õppetase" className="flex flex-wrap border-b border-subtle">
-            {levels.map((l, i) => (
-              <button key={l} id={tabId(i)} type="button" role="tab" aria-selected={l === level}
-                aria-controls={`${id}-panel`} tabIndex={l === level ? 0 : -1}
-                className={`-mb-px border-b-2 px-4 py-2 text-sm ${l === level ? "border-interactive font-semibold" : "border-transparent text-ink-muted hover:bg-subtle"}`}
-                onClick={() => selectLevel(l)} onKeyDown={(e) => onTabKey(e, i)}>
-                {l}
-              </button>
-            ))}
-          </div>
+          <Tabs label="Õppetase" idPrefix={id} items={levels.map((l) => ({ value: l, text: l }))} value={level}
+            onChange={selectLevel} panelId={() => `${id}-panel`} />
 
-          <div role="tabpanel" id={`${id}-panel`} aria-labelledby={tabId(levels.indexOf(level))}
+          <div role="tabpanel" id={`${id}-panel`} aria-labelledby={tabId(id, levels.indexOf(level))}
             className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-3">
               {PLACES.map(([key, text]) => (
