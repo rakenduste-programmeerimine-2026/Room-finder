@@ -122,6 +122,7 @@ Source: [REQUIREMENT #32] "Kasutaja saab valida kas varem kokkupandud gruppide s
 As an organiser, I want to pick curricula and optionally courses whose classes the event must avoid, and rank them, so that the most important students can attend.
 
 Acceptance criteria:
+- Given the editor, then the curricula are listed by degree level as on the ASIO page, each with its study years to check (decision in #32: one item is one ASIO group).
 - Given two curricula, when I move the second one up, then the saved and sent order has it first.
 - Given a saved curriculum group, when I change it and save under a new name, then both groups exist.
 - Given a saved curriculum group, when I change it and overwrite it, then only the changed group exists.
