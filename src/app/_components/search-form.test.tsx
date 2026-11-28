@@ -5,20 +5,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackendContext } from "@/app/_ports/backend";
 import type { Backend } from "@/app/_ports/ports";
 import { createStubBackend } from "@/app/_ports/stubs";
-import { SearchForm } from "./search-form";
+import { SearchForm, type Submission } from "./search-form";
 
 vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 beforeEach(() => vi.mocked(toast.error).mockClear());
 
 async function renderForm(backend: Backend = createStubBackend()) {
+  const onSubmit = vi.fn<(submission: Submission) => void>();
   render(
     <BackendContext value={backend}>
-      <SearchForm />
+      <SearchForm onSubmit={onSubmit} />
     </BackendContext>,
   );
   await act(async () => {}); // let the backend answer
-  return { backend, user: userEvent.setup() };
+  return { backend, onSubmit, user: userEvent.setup() };
 }
 
 const searchRooms = () =>

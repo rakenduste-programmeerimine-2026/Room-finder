@@ -26,7 +26,7 @@ export type Submission = { input: SearchInput; rooms: Room[]; summary: SummaryRo
  * other (the duration limits the time ranges, the attendee count marks small rooms). While the
  * editor is open the form is only hidden, so every input stays (search journey, Composing).
  */
-export function SearchForm({ onSubmit }: { onSubmit?: (submission: Submission) => void }) {
+export function SearchForm({ onSubmit }: { onSubmit: (submission: Submission) => void }) {
   const backend = useBackend();
   const [event, setEvent] = useState(EMPTY_EVENT);
   const [catalog, setCatalog] = useState<Room[]>([]);
@@ -80,7 +80,7 @@ export function SearchForm({ onSubmit }: { onSubmit?: (submission: Submission) =
   });
   const submit = () => {
     if (!read.ok || !windows || roomCodes.length === 0) return;
-    onSubmit?.({
+    onSubmit({
       input: {
         ...read.event,
         roomCodes,
